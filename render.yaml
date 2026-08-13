@@ -8,7 +8,8 @@ services:
     region: oregon        # 可选：singapore 等
     branch: main
     buildCommand: npm install
-    startCommand: npm start
+    # 启动加 --experimental-sqlite：确保 Render 的 Node 22 各小版本都能加载内置 node:sqlite（本地 22.x 亦可正常运行）
+    startCommand: node --experimental-sqlite server.js
     healthCheckPath: /api/network-mode
     envVars:
       - key: PORT
