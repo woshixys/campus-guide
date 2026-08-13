@@ -1,0 +1,26 @@
+# Render 一键部署配置（生成固定子域名，如 https://campus-guide-xxx.onrender.com）
+# 用法：把本仓库推到 GitHub → 在 render.com 选 "New Web Service" → 连接仓库 → 选本 yaml 即可。
+services:
+  - type: web
+    name: campus-guide
+    runtime: node
+    plan: free            # 免费档：固定子域名永久有效；但文件系统为临时，实例休眠/重启后 data.db 会重置
+    region: oregon        # 可选：singapore 等
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/network-mode
+    envVars:
+      - key: PORT
+        value: 10000      # Render 注入的端口（务必与此一致）
+      - key: NODE_VERSION
+        value: 22
+      - key: EDIT_PASSWORD
+        sync: false        # 部署后在 Render 面板「Environment」手动填你的编辑密码（不要写进仓库）
+      # —— 数据永久保存（避免休眠后清空）：——
+      # 1) 升级到 Starter 计划（约 $7/月）后在 Render 面板加一个 Disk；
+      # 2) 取消下面 disk 注释，并在 Environment 增加  DB_PATH=/var/data/data.db
+      # disk:
+      #   name: campus-data
+      #   mountPath: /var/data
+      #   sizeGB: 1

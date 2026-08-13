@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>创新创意设计艺术学院（香蜜校区）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#ff7823" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#ff7823',
+            'brand-light': '#fff4ec',
+            'brand-dark': '#e9651a',
+          },
+          boxShadow: {
+            soft: '0 10px 30px -12px rgba(0,0,0,0.15)',
+            card: '0 8px 24px -10px rgba(255,120,35,0.25)',
+          },
+          borderRadius: { '4xl': '2rem' },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* 仅做 Tailwind 难以表达的细节：禁止文字选中、滚动条隐藏、卡片按压反馈 */
+    html, body { overflow-x: hidden; }
+    body { -webkit-tap-highlight-color: transparent; }
+    /* 关键：iOS 输入框聚焦时若 font-size < 16px 会自动放大整页导致错位，统一设 16px 规避 */
+    input, textarea, select, button { font-size: 16px; }
+    /* 文件上传按钮在 iOS 上有时过小/不可点，放大触控区 */
+    input[type="file"] { font-size: 15px; }
+    input[type="file"]::file-selector-button {
+      font-size: 15px; min-height: 44px; padding-top: 10px; padding-bottom: 10px;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    #track { touch-action: pan-y; }
+    .slide { flex: 0 0 100%; }
+    .card-entry:active { transform: scale(0.97); }
+    .food-card:active, .study-card:active, .club-card:active { transform: scale(0.98); }
+    .ph-grad { background: linear-gradient(135deg, #ffa766 0%, #ff7823 100%); }
+    /* 投稿弹窗动画 */
+    #eat-modal, #study-modal, #play-modal, #modal, #login-modal { transition: opacity .25s ease; }
+    #eat-modal .panel, #study-modal .panel, #play-modal .panel, #modal .panel, #login-panel { transition: transform .3s ease; }
+    /* 分类标签横向滑动：隐藏滚动条 + 平滑滚动 */
+    .tabs-x { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+    .tab-pill { scroll-snap-align: start; }
+    /* 后台导航横向滑动 */
+    #navTabs { scroll-behavior: smooth; -ms-overflow-style: none; scrollbar-width: none; }
+    #navTabs::-webkit-scrollbar { display: none; }
+    /* 后台操作按钮：放大到手指友好尺寸（≥44px 触控高度） */
+    .admin-btn { min-height: 46px; }
+    .admin-input { min-height: 46px; }
+    /* 弹窗/键盘：让输入框聚焦时容器可滚动，避免被输入法遮挡 */
+    .modal-scroll { -webkit-overflow-scrolling: touch; }
+  </style>
+</head>
+<body class="bg-white text-gray-800 antialiased">
+
+  <!-- 单页容器：桌面端居中显示为手机宽度 -->
+  <div id="app" class="mx-auto max-w-[480px] min-h-screen bg-white">
+
+    <!-- ============================================================= -->
+    <!-- 浏览模式（学生视角） -->
+    <!-- ============================================================= -->
+    <div id="browse">
+
+      <!-- ============================================================= -->
+      <!-- 区块①：首页（默认显示） -->
+      <!-- ============================================================= -->
+      <section id="block-home" class="px-5 pt-6 pb-10">
+        <!-- 顶部：居中大号橙色标题（由后台控制，前端只做展示）+ 右上角管理入口 -->
+        <header class="relative text-center pb-4">
+          <button id="manage-entry-btn" onclick="onManageClick()" class="absolute top-0 right-0 text-brand text-[15px] font-bold bg-brand-light px-4 py-2 rounded-full active:scale-95 transition shadow-sm">管理入口</button>
+          <h1 id="home-title" class="text-[26px] leading-snug font-extrabold text-brand whitespace-pre-line">创新创意设计艺术学院（香蜜校区）</h1>
+          <p class="mt-2 text-[11px] tracking-[0.25em] text-gray-300 uppercase">
+            SZPU · Campus Guide
+          </p>
+        </header>
+
+        <!-- 轮播图组件 -->
+        <section>
+          <div id="carousel" class="relative rounded-4xl overflow-hidden shadow-soft bg-brand-light aspect-[4/3] select-none">
+            <div id="track" class="flex h-full will-change-transform"></div>
+            <div id="dots" class="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-10"></div>
+          </div>
+        </section>
+
+        <!-- 校区简介文字区域 -->
+        <section class="mt-6">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="inline-block w-1.5 h-5 rounded-full bg-brand"></span>
+            <h2 class="text-base font-bold text-gray-800">校区简介</h2>
+          </div>
+          <p id="intro" class="text-sm leading-7 text-gray-600 bg-gray-50 rounded-3xl p-5">
+            简介加载中…
+          </p>
+        </section>
+
+        <!-- 三个大卡片入口（垂直排布，点击切换区块，不再跳转） -->
+        <section class="mt-6 space-y-4">
+          <div onclick="showBlock('eat')" class="card-entry flex items-center gap-4 bg-white rounded-4xl shadow-card border border-orange-50 p-5 transition-transform cursor-pointer">
+            <div class="flex-none w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center text-3xl">🥘</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-bold text-brand">吃什么</h3>
+              <p class="text-xs text-gray-400 mt-0.5 truncate">食堂、周边美食与探店指南</p>
+            </div>
+            <span class="flex-none text-gray-300 text-xl">›</span>
+          </div>
+
+          <div onclick="showBlock('study')" class="card-entry flex items-center gap-4 bg-white rounded-4xl shadow-card border border-orange-50 p-5 transition-transform cursor-pointer">
+            <div class="flex-none w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center text-3xl">📚</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-bold text-brand">学什么</h3>
+              <p class="text-xs text-gray-400 mt-0.5 truncate">专业方向、工作室与课程地图</p>
+            </div>
+            <span class="flex-none text-gray-300 text-xl">›</span>
+          </div>
+
+          <div onclick="showBlock('play')" class="card-entry flex items-center gap-4 bg-white rounded-4xl shadow-card border border-orange-50 p-5 transition-transform cursor-pointer">
+            <div class="flex-none w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center text-3xl">🎮</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-bold text-brand">玩什么</h3>
+              <p class="text-xs text-gray-400 mt-0.5 truncate">社团、展览与校园活动攻略</p>
+            </div>
+            <span class="flex-none text-gray-300 text-xl">›</span>
+          </div>
+        </section>
+
+        <footer class="mt-8 text-center text-[11px] text-gray-300">
+          深职大香蜜校区 · 创新创意设计艺术学院
+        </footer>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 区块②：吃什么（默认隐藏） -->
+      <!-- ============================================================= -->
+      <section id="block-eat" class="hidden">
+        <div class="px-5 pt-4 pb-28">
+          <!-- 返回 + 橙色标题 -->
+          <div class="flex items-center gap-3 py-3">
+            <button onclick="showBlock('home')" class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand text-xl active:scale-90 transition">‹</button>
+            <h1 class="text-2xl font-extrabold text-brand">吃什么</h1>
+          </div>
+          <p class="text-xs text-gray-300 mb-4 pl-1">深职大香蜜校区 · 校内及周边美食</p>
+
+          <!-- 校内 / 周边 局部筛选 -->
+          <div id="eat-filter" class="flex gap-2 mb-4">
+            <button data-loc="全部" class="filter-pill px-4 py-1.5 rounded-full text-sm border font-medium border-brand text-brand bg-brand-light">全部</button>
+            <button data-loc="校内" class="filter-pill px-4 py-1.5 rounded-full text-sm border font-medium border-orange-200 text-gray-500">校内</button>
+            <button data-loc="周边" class="filter-pill px-4 py-1.5 rounded-full text-sm border font-medium border-orange-200 text-gray-500">周边</button>
+          </div>
+
+          <!-- 美食卡片列表（JS 渲染） -->
+          <section id="eat-list" class="space-y-4"></section>
+          <div id="eat-empty" class="hidden text-center text-gray-300 text-sm py-16">该范围暂无美食，点击下方按钮推荐吧～</div>
+          <footer class="mt-10 text-center text-[11px] text-gray-300">深职大香蜜校区 · 创新创意设计艺术学院</footer>
+        </div>
+
+        <!-- 底部固定橙色按钮 -->
+        <button id="eat-fab" onclick="onEditClick('eat')" class="fixed bottom-0 inset-x-0 max-w-[480px] mx-auto bg-brand text-white py-4 text-center text-base font-bold z-40 shadow-[0_-6px_24px_rgba(255,120,35,0.35)] active:scale-[0.99] transition">
+          ＋ 我要推荐美食
+        </button>
+
+        <!-- 投稿弹窗 -->
+        <div id="eat-modal" class="fixed inset-0 z-50 opacity-0 pointer-events-none">
+          <div class="absolute inset-0 bg-black/40" onclick="eatCloseModal()"></div>
+          <div class="panel modal-scroll absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 max-h-[90vh] overflow-y-auto no-scrollbar translate-y-full">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-brand">推荐美食</h3>
+              <button onclick="eatCloseModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-sm">✕</button>
+            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+            <input id="eat-f-shop" type="text" placeholder="例如：湖景奶茶铺" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">位置</label>
+            <div id="eat-f-loc" class="flex gap-2 mb-4">
+              <button type="button" data-loc="校内" class="loc-pill flex-1 py-3 rounded-2xl text-sm border font-medium border-brand text-brand bg-brand-light">校内（香蜜校区食堂）</button>
+              <button type="button" data-loc="周边" class="loc-pill flex-1 py-3 rounded-2xl text-sm border font-medium border-orange-200 text-gray-500">校区周边</button>
+            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">特色简介</label>
+            <textarea id="eat-f-intro" rows="3" placeholder="一句话介绍它为什么值得吃" class="w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">特色标签（逗号分隔，可选）</label>
+            <input id="eat-f-tags" type="text" placeholder="例如：奶茶,人气,便宜" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">图片（可多张）</label>
+            <input id="eat-f-images" type="file" accept="image/*" multiple class="hidden" />
+            <label for="eat-f-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择图片（支持相册多选）</label>
+            <div id="eat-preview" class="flex flex-wrap gap-2 mb-2"></div>
+            <p id="eat-form-err" class="hidden text-red-500 text-xs mb-2"></p>
+            <button id="eat-submit" class="w-full bg-brand text-white rounded-2xl py-3.5 font-bold text-base active:scale-[0.98] transition mt-2">提交推荐</button>
+          </div>
+        </div>
+        <div id="eat-toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900/90 text-white text-sm px-5 py-2.5 rounded-full opacity-0 transition-opacity pointer-events-none"></div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 区块③：学什么（默认隐藏） -->
+      <!-- ============================================================= -->
+      <section id="block-study" class="hidden">
+        <div class="px-5 pt-4 pb-28">
+          <!-- 返回 + 橙色标题 -->
+          <div class="flex items-center gap-3 py-3">
+            <button onclick="showBlock('home')" class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand text-xl active:scale-90 transition">‹</button>
+            <h1 class="text-2xl font-extrabold text-brand">学什么</h1>
+          </div>
+          <p class="text-xs text-gray-300 mb-3 pl-1">创新创意设计艺术学院 · 香蜜校区</p>
+
+          <!-- 可横向滑动的专业分类标签（JS 渲染，初始为 9 个专业） -->
+          <div class="-mx-5 px-5 mb-4">
+            <div id="study-tabs" class="tabs-x flex gap-2 overflow-x-auto no-scrollbar pb-1 snap-x">
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-brand text-brand bg-brand-light shrink-0">全部</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">服装设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">产品设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">工艺美术品设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">视觉传达设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">工业设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">时尚品设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">环境艺术设计</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">专业八（占位）</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">专业九（占位）</button>
+            </div>
+          </div>
+
+          <!-- 学习卡片列表（JS 渲染） -->
+          <section id="study-list" class="space-y-4"></section>
+          <div id="study-empty" class="hidden text-center text-gray-300 text-sm py-16">该分类暂无内容，点击下方按钮分享吧～</div>
+          <footer class="mt-10 text-center text-[11px] text-gray-300">深职大香蜜校区 · 创新创意设计艺术学院</footer>
+        </div>
+
+        <!-- 底部固定橙色按钮 -->
+        <button id="study-fab" onclick="onEditClick('study')" class="fixed bottom-0 inset-x-0 max-w-[480px] mx-auto bg-brand text-white py-4 text-center text-base font-bold z-40 shadow-[0_-6px_24px_rgba(255,120,35,0.35)] active:scale-[0.99] transition">
+          ＋ 上传学习资料
+        </button>
+
+        <!-- 投稿弹窗 -->
+        <div id="study-modal" class="fixed inset-0 z-50 opacity-0 pointer-events-none">
+          <div class="absolute inset-0 bg-black/40" onclick="studyCloseModal()"></div>
+          <div class="panel modal-scroll absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 max-h-[90vh] overflow-y-auto no-scrollbar translate-y-full">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-brand">上传学习资料</h3>
+              <button onclick="studyCloseModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-sm">✕</button>
+            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
+            <input id="study-f-title" type="text" placeholder="例如：设计思维笔记 / 某门课作业干货" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">内容 / 笔记 / 经验</label>
+            <textarea id="study-f-intro" rows="4" placeholder="分享你的设计学习心得、课程重点或参赛经验" class="w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">归属专业</label>
+            <select id="study-f-category" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+              <option value="">请选择归属专业</option>
+              <option>服装设计</option><option>产品设计</option><option>工艺美术品设计</option>
+              <option>视觉传达设计</option><option>工业设计</option><option>时尚品设计</option>
+              <option>环境艺术设计</option><option>专业八（占位）</option><option>专业九（占位）</option>
+            </select>
+            <label class="block text-sm font-medium text-gray-700 mb-1">核心课程（逗号分隔，可选）</label>
+            <input id="study-f-courses" type="text" placeholder="例如：动态图形,交互设计" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">学习方向（逗号分隔，可选）</label>
+            <input id="study-f-directions" type="text" placeholder="例如：视觉动效,UI设计" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">图片（作品图 / 课件截图，可多张）</label>
+            <input id="study-f-images" type="file" accept="image/*" multiple class="hidden" />
+            <label for="study-f-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择图片（支持相册多选）</label>
+            <div id="study-preview" class="flex flex-wrap gap-2 mb-2"></div>
+            <p id="study-form-err" class="hidden text-red-500 text-xs mb-2"></p>
+            <button id="study-submit" class="w-full bg-brand text-white rounded-2xl py-3.5 font-bold text-base active:scale-[0.98] transition mt-2">提交资料</button>
+          </div>
+        </div>
+        <div id="study-toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900/90 text-white text-sm px-5 py-2.5 rounded-full opacity-0 transition-opacity pointer-events-none"></div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- 区块④：玩什么（默认隐藏） -->
+      <!-- ============================================================= -->
+      <section id="block-play" class="hidden">
+        <div class="px-5 pt-4 pb-28">
+          <!-- 返回 + 橙色标题 -->
+          <div class="flex items-center gap-3 py-3">
+            <button onclick="showBlock('home')" class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand text-xl active:scale-90 transition">‹</button>
+            <h1 class="text-2xl font-extrabold text-brand">玩什么</h1>
+          </div>
+          <p class="text-xs text-gray-300 mb-3 pl-1">香蜜校区 · 创新创意设计艺术学院</p>
+
+          <!-- 可横向滑动的分类标签（JS 渲染，初始：社团 / 学生会组织） -->
+          <div class="-mx-5 px-5 mb-4">
+            <div id="play-tabs" class="tabs-x flex gap-2 overflow-x-auto no-scrollbar pb-1 snap-x">
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-brand text-brand bg-brand-light shrink-0">全部</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">社团</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">学生会组织</button>
+            </div>
+          </div>
+
+          <!-- 社团 / 部门 / 工作室 / 活动 卡片列表（JS 渲染） -->
+          <section id="play-list" class="space-y-4"></section>
+          <div id="play-empty" class="hidden text-center text-gray-300 text-sm py-16">该分类暂无内容，点击下方按钮分享吧～</div>
+          <footer class="mt-10 text-center text-[11px] text-gray-300">深职大香蜜校区 · 创新创意设计艺术学院</footer>
+        </div>
+
+        <!-- 底部固定橙色按钮 -->
+        <button id="play-fab" onclick="onEditClick('play')" class="fixed bottom-0 inset-x-0 max-w-[480px] mx-auto bg-brand text-white py-4 text-center text-base font-bold z-40 shadow-[0_-6px_24px_rgba(255,120,35,0.35)] active:scale-[0.99] transition">
+          ＋ 提交社团 / 工作室信息
+        </button>
+
+        <!-- 投稿弹窗 -->
+        <div id="play-modal" class="fixed inset-0 z-50 opacity-0 pointer-events-none">
+          <div class="absolute inset-0 bg-black/40" onclick="playCloseModal()"></div>
+          <div class="panel modal-scroll absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 max-h-[90vh] overflow-y-auto no-scrollbar translate-y-full">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-brand">提交社团 / 工作室信息</h3>
+              <button onclick="playCloseModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-sm">✕</button>
+            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">社团 / 部门 / 工作室名称</label>
+            <input id="play-f-org_name" type="text" placeholder="例如：非遗手作社 / 视觉传达设计工作室" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">归属分类</label>
+            <select id="play-f-category" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+              <option value="">请选择归属分类</option>
+              <option>社团</option><option>学生会组织</option>
+            </select>
+            <label class="block text-sm font-medium text-gray-700 mb-1">简介介绍</label>
+            <textarea id="play-f-intro" rows="3" placeholder="一句话介绍这个组织是做什么的" class="w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">招新要求</label>
+            <textarea id="play-f-recruit" rows="2" placeholder="招新对象、门槛、面向人群等" class="w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">艺术活动介绍（可选）</label>
+            <textarea id="play-f-activities" rows="2" placeholder="日常活动、展览、工作坊等亮点" class="w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">联系方式</label>
+            <input id="play-f-contact" type="text" placeholder="微信号 / 工作室地址 / 邮箱 / 公众号等" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">活动图片（可多张）</label>
+            <input id="play-f-images" type="file" accept="image/*" multiple class="hidden" />
+            <label for="play-f-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择图片（支持相册多选）</label>
+            <div id="play-preview" class="flex flex-wrap gap-2 mb-2"></div>
+            <p id="play-form-err" class="hidden text-red-500 text-xs mb-2"></p>
+            <button id="play-submit" class="w-full bg-brand text-white rounded-2xl py-3.5 font-bold text-base active:scale-[0.98] transition mt-2">提交信息</button>
+          </div>
+        </div>
+        <div id="play-toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900/90 text-white text-sm px-5 py-2.5 rounded-full opacity-0 transition-opacity pointer-events-none"></div>
+      </section>
+
+    </div><!-- /#browse -->
+
+    <!-- ============================================================= -->
+    <!-- 后台管理模式（内嵌于同一页面，默认隐藏） -->
+    <!-- ============================================================= -->
+    <div id="admin" class="hidden min-h-screen flex flex-col">
+      <!-- 顶栏 -->
+      <div class="flex items-center justify-between px-5 py-3 sticky top-0 bg-white z-30 border-b border-orange-50">
+        <div>
+          <h1 class="text-lg font-extrabold text-brand">校园指南 · 后台</h1>
+          <p id="who" class="text-[11px] text-gray-400"></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="showBrowse()" class="admin-btn text-[15px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">返回浏览模式</button>
+          <button onclick="doLogout()" class="admin-btn text-[15px] text-gray-500 bg-gray-100 px-5 rounded-full active:scale-95 transition">退出</button>
+        </div>
+      </div>
+
+      <!-- 板块导航（横向滑动） -->
+      <div id="navTabs" class="flex gap-2 overflow-x-auto no-scrollbar px-5 py-3 sticky top-[57px] bg-white z-20 border-b border-orange-50"></div>
+
+      <!-- 内容区 -->
+      <main class="flex-1 px-5 py-4 pb-24 overflow-y-auto">
+        <section id="panel-home" class="panel hidden"></section>
+        <section id="panel-studycats" class="panel hidden"></section>
+        <section id="panel-clubcats" class="panel hidden"></section>
+        <section id="panel-foods" class="panel hidden"></section>
+        <section id="panel-study" class="panel hidden"></section>
+        <section id="panel-clubs" class="panel hidden"></section>
+      </main>
+    </div><!-- /#admin -->
+
+    <!-- ============ 登录弹窗（点击管理入口弹出） ============ -->
+    <div id="login-modal" class="fixed inset-0 z-[70] opacity-0 pointer-events-none">
+      <div class="absolute inset-0 bg-black/40" onclick="closeLoginModal()"></div>
+      <div id="login-panel" class="absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 translate-y-full max-h-[92vh] overflow-y-auto modal-scroll">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-brand">管理员登录</h3>
+          <button onclick="closeLoginModal()" class="w-9 h-9 rounded-full bg-gray-100 text-gray-500 text-base">✕</button>
+        </div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">管理员账号</label>
+        <input id="login-user" type="text" placeholder="admin" autocomplete="username" class="admin-input w-full mb-4 px-4 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+        <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" class="admin-input w-full mb-3 px-4 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <p id="login-err" class="hidden text-red-500 text-xs mb-3"></p>
+        <button onclick="doLogin()" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition">登录</button>
+        <p class="text-center text-[11px] text-gray-400 mt-4">默认账号 admin / 密码 admin123</p>
+      </div>
+    </div>
+
+    <!-- ============ 只读模式「解锁编辑」提示条（仅外部网络只读时显示） ============ -->
+    <div id="unlock-bar" class="fixed bottom-0 inset-x-0 max-w-[480px] mx-auto bg-white border-t border-orange-100 py-3 px-4 flex items-center justify-between z-40 shadow-[0_-6px_24px_rgba(0,0,0,0.06)]" style="display:none;">
+      <span class="text-[13px] text-gray-500">🔒 当前为只读模式</span>
+      <button onclick="openEditModal()" class="bg-brand text-white text-[14px] font-bold px-5 py-2 rounded-full active:scale-95 transition shadow-sm">解锁编辑</button>
+    </div>
+
+    <!-- ============ 解锁编辑弹窗（外部网络输入编辑密码） ============ -->
+    <div id="edit-modal" class="fixed inset-0 z-[70] opacity-0 pointer-events-none">
+      <div class="absolute inset-0 bg-black/40" onclick="closeEditModal()"></div>
+      <div id="edit-panel" class="absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 translate-y-full max-h-[92vh] overflow-y-auto modal-scroll">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-brand">解锁编辑模式</h3>
+          <button onclick="closeEditModal()" class="w-9 h-9 rounded-full bg-gray-100 text-gray-500 text-base">✕</button>
+        </div>
+        <p class="text-[13px] text-gray-500 mb-3">输入编辑密码后，即可在本页面新增 / 修改 / 投稿内容。密码由管理员提供。</p>
+        <label class="block text-sm font-medium text-gray-700 mb-1">编辑密码</label>
+        <input id="edit-pass" type="password" placeholder="••••••••" autocomplete="current-password" class="admin-input w-full mb-3 px-4 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <p id="edit-err" class="hidden text-red-500 text-xs mb-3"></p>
+        <button onclick="doEditUnlock()" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition">解锁</button>
+        <button onclick="closeEditModal()" class="admin-btn w-full mt-2 bg-gray-100 text-gray-500 rounded-2xl font-bold text-[14px] active:scale-[0.98] transition">取消</button>
+      </div>
+    </div>
+
+    <!-- ============ 通用弹窗（新增 / 编辑） ============ -->
+    <div id="modal" class="fixed inset-0 z-50 opacity-0 pointer-events-none">
+      <div class="absolute inset-0 bg-black/40" onclick="closeModal()"></div>
+      <div class="panel modal-scroll absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 max-h-[92vh] overflow-y-auto no-scrollbar translate-y-full">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="modal-title" class="text-lg font-bold text-brand"></h3>
+          <button onclick="closeModal()" class="w-9 h-9 rounded-full bg-gray-100 text-gray-500 text-base">✕</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900/90 text-white text-sm px-5 py-2.5 rounded-full opacity-0 transition-opacity pointer-events-none"></div>
+
+  </div><!-- /#app -->
+
+  <script>
+    /* ===================== 通用工具 ===================== */
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function parseImgs(v) {
+      try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    }
+    function safeParse(v) { try { return JSON.parse(v || '[]') || []; } catch (e) { return []; } }
+    function tagPill(t) { return `<span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">${esc(t)}</span>`; }
+    function tagOutline(t) { return `<span class="text-[11px] px-2 py-0.5 rounded-full border border-brand text-brand bg-brand-light">${esc(t)}</span>`; }
+    function splitList(s) { return String(s || '').split(',').map(t => t.trim()).filter(Boolean); }
+
+    /* ===================== 图片压缩（全局唯一一份） ===================== */
+    function resizeImage(file, maxDim = 1000) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+            const c = document.createElement('canvas'); c.width = width; c.height = height;
+            c.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(c.toDataURL('image/jpeg', 0.8));
+          };
+          img.onerror = reject; img.src = reader.result;
+        };
+        reader.onerror = reject; reader.readAsDataURL(file);
+      });
+    }
+
+    /* ===================== 浏览模式：区块切换（懒加载数据） ===================== */
+    function showBlock(name) {
+      ['home', 'eat', 'study', 'play'].forEach((n) => {
+        const el = document.getElementById('block-' + n);
+        if (el) el.classList.toggle('hidden', n !== name);
+      });
+      eatCloseModal(true); studyCloseModal(true); playCloseModal(true);
+      window.scrollTo(0, 0);
+      if (name === 'home') loadHome();
+      if (name === 'eat') ensureEatLoaded();
+      if (name === 'study') ensureStudyLoaded();
+      if (name === 'play') ensurePlayLoaded();
+    }
+
+    /* 通用：标签高亮切换 */
+    function activatePill(box, btn) {
+      box.querySelectorAll('button').forEach((b) => {
+        const on = b === btn;
+        b.classList.remove('border-brand', 'text-brand', 'bg-brand-light', 'border-orange-200', 'text-gray-500');
+        b.classList.add(on ? 'border-brand' : 'border-orange-200', on ? 'text-brand' : 'text-gray-500');
+        if (on) b.classList.add('bg-brand-light');
+      });
+    }
+
+    /* ===================== 首页轮播图 ===================== */
+    const track = document.getElementById('track');
+    const dotsBox = document.getElementById('dots');
+    let slides = [];
+    let index = 0;
+    let autoTimer = null;
+    const AUTO_MS = 4000;
+
+    function renderSlides(items) {
+      slides = items;
+      track.innerHTML = '';
+      dotsBox.innerHTML = '';
+      if (!items.length) {
+        track.innerHTML = '<div class="slide ph-grad flex items-center justify-center text-white text-lg font-semibold">暂无图片</div>';
+        return;
+      }
+      items.forEach((it, i) => {
+        const div = document.createElement('div');
+        div.className = 'slide h-full relative';
+        if (it.image) {
+          div.innerHTML = `<img src="${it.image}" alt="${it.caption || ''}" class="w-full h-full object-cover" />`;
+        } else {
+          div.innerHTML = `<div class="ph-grad w-full h-full flex flex-col items-center justify-center text-white">
+              <span class="text-3xl mb-1">📷</span>
+              <span class="text-base font-semibold tracking-wide">${it.caption || '图片待上传'}</span>
+            </div>`;
+        }
+        track.appendChild(div);
+        const dot = document.createElement('button');
+        dot.className = 'w-2 h-2 rounded-full transition-all ' + (i === 0 ? 'bg-white w-5' : 'bg-white/50');
+        dot.setAttribute('aria-label', '第' + (i + 1) + '张');
+        dot.addEventListener('click', () => goTo(i, true));
+        dotsBox.appendChild(dot);
+      });
+      goTo(0, false);
+      startAuto();
+    }
+    function updateUI() {
+      track.style.transform = `translateX(-${index * 100}%)`;
+      [...dotsBox.children].forEach((d, i) => {
+        d.className = 'w-2 h-2 rounded-full transition-all ' + (i === index ? 'bg-white w-5' : 'bg-white/50');
+      });
+    }
+    function goTo(i, manual) {
+      index = (i + slides.length) % slides.length;
+      updateUI();
+      if (manual) restartAuto();
+    }
+    function next() { goTo(index + 1, false); }
+    function prev() { goTo(index - 1, false); }
+    function startAuto() { autoTimer = setInterval(next, AUTO_MS); }
+    function stopAuto() { clearInterval(autoTimer); }
+    function restartAuto() { stopAuto(); startAuto(); }
+
+    let startX = 0, dragging = false, deltaX = 0;
+    function onDown(x) { dragging = true; startX = x; deltaX = 0; stopAuto(); track.style.transition = 'none'; }
+    function onMove(x) { if (!dragging) return; deltaX = x - startX; track.style.transform = `translateX(calc(-${index * 100}% + ${deltaX}px))`; }
+    function onUp() {
+      if (!dragging) return;
+      dragging = false;
+      track.style.transition = '';
+      const threshold = 50;
+      if (deltaX < -threshold) next();
+      else if (deltaX > threshold) prev();
+      else updateUI();
+      restartAuto();
+    }
+    track.addEventListener('touchstart', e => onDown(e.touches[0].clientX), { passive: true });
+    track.addEventListener('touchmove', e => onMove(e.touches[0].clientX), { passive: true });
+    track.addEventListener('touchend', onUp);
+    track.addEventListener('mousedown', e => onDown(e.clientX));
+    window.addEventListener('mousemove', e => onMove(e.clientX));
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mouseleave', onUp);
+
+    /* 首页内容加载：标题 + 轮播图 + 简介（每次进入首页都重新拉取，后台修改后即时生效） */
+    function loadHome() {
+      fetch('/api/carousel')
+        .then(r => r.json())
+        .then(d => renderSlides(d.items || []))
+        .catch(() => renderSlides([]));
+      fetch('/api/intro')
+        .then(r => r.json())
+        .then(d => { const el = document.getElementById('intro'); if (el) el.textContent = d.content || '简介暂未填写'; })
+        .catch(() => { const el = document.getElementById('intro'); if (el) el.textContent = '简介加载失败'; });
+      fetch('/api/home-title')
+        .then(r => r.json())
+        .then(d => {
+          const t = d.title || '创新创意设计艺术学院（香蜜校区）';
+          const h = document.getElementById('home-title');
+          if (h) h.textContent = t;
+          document.title = t;
+        })
+        .catch(() => {});
+    }
+    loadHome();
+
+    /* ===================== 区块②：吃什么 ===================== */
+    (function () {
+      const filterBox = document.getElementById('eat-filter');
+      const listEl = document.getElementById('eat-list');
+      const emptyEl = document.getElementById('eat-empty');
+      let eatItems = [];
+      let eatFilter = '全部';     // 列表局部筛选
+      let eatSubmitLoc = '校内';  // 投稿时选的位置
+      let eatLoaded = false;
+
+      function ensureLoaded() { load(); }   // 每次进入区块都重新拉取，保证后台审核后即时刷新展示
+      window.ensureEatLoaded = ensureLoaded;
+
+      function load() {
+        fetch('/api/foods').then(r => r.json()).then(d => { eatItems = d.items || []; render(); })
+          .catch(() => { eatItems = []; render(); });
+      }
+      function render() {
+        const list = eatItems.filter(it => eatFilter === '全部' || it.location === eatFilter);
+        if (!list.length) { listEl.innerHTML = ''; emptyEl.classList.remove('hidden'); return; }
+        emptyEl.classList.add('hidden');
+        listEl.innerHTML = list.map(eatCardHTML).join('');
+      }
+      function eatCardHTML(it) {
+        const imgs = parseImgs(it.images);
+        const img = imgs.length
+          ? `<img src="${imgs[0]}" class="w-full h-full object-cover" />`
+          : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-4xl">🍜</div>`;
+        const loc = it.location === '周边' ? '📍 校区周边' : '🏫 香蜜校区食堂';
+        const tags = splitList(it.tags).map(tagPill).join('');
+        return `<article class="food-card transition-transform bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">
+          <div class="h-40 relative overflow-hidden">${img}</div>
+          <div class="p-4">
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="text-base font-bold text-gray-900 leading-snug">${esc(it.shop_name)}</h3>
+              <span class="flex-none text-[11px] px-2 py-0.5 rounded-full border border-brand text-brand bg-brand-light whitespace-nowrap">${loc}</span>
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 leading-6">${esc(it.intro)}</p>
+            ${tags ? `<div class="mt-2.5 flex flex-wrap gap-1.5">${tags}</div>` : ''}
+          </div>
+        </article>`;
+      }
+
+      filterBox.addEventListener('click', e => {
+        const b = e.target.closest('.filter-pill');
+        if (!b) return;
+        eatFilter = b.dataset.loc; activatePill(filterBox, b); render();
+      });
+
+      const locBox = document.getElementById('eat-f-loc');
+      locBox.addEventListener('click', e => {
+        const b = e.target.closest('.loc-pill');
+        if (!b) return;
+        eatSubmitLoc = b.dataset.loc; activatePill(locBox, b);
+      });
+
+      const modal = document.getElementById('eat-modal');
+      const panel = modal.querySelector('.panel');
+      function open() {
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        panel.classList.remove('translate-y-full'); panel.classList.add('translate-y-0');
+        document.body.style.overflow = 'hidden';
+      }
+      function close(silent) {
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        panel.classList.add('translate-y-full'); panel.classList.remove('translate-y-0');
+        if (!silent) document.body.style.overflow = '';
+      }
+      window.eatOpenModal = open;
+      window.eatCloseModal = close;
+
+      let eatImgs = [];
+      document.getElementById('eat-f-images').addEventListener('change', e => {
+        [...e.target.files].forEach(file => {
+          if (!file.type.startsWith('image/')) return;
+          resizeImage(file, 1000).then(d => { eatImgs.push(d); renderPrev(); });
+        });
+        e.target.value = '';
+      });
+      function renderPrev() {
+        document.getElementById('eat-preview').innerHTML = eatImgs.map((src, i) =>
+          `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100">
+             <img src="${src}" class="w-full h-full object-cover" />
+             <button type="button" onclick="eatRemoveImg(${i})" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-5">✕</button>
+           </div>`).join('');
+      }
+      window.eatRemoveImg = (i) => { eatImgs.splice(i, 1); renderPrev(); };
+
+      let toastTimer;
+      function showToast(msg) {
+        const el = document.getElementById('eat-toast');
+        el.textContent = msg;
+        el.classList.remove('opacity-0'); el.classList.add('opacity-100');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.add('opacity-0'); el.classList.remove('opacity-100'); }, 2200);
+      }
+      function resetForm() {
+        document.getElementById('eat-f-shop').value = '';
+        document.getElementById('eat-f-intro').value = '';
+        document.getElementById('eat-f-tags').value = '';
+        eatImgs = []; renderPrev();
+        document.getElementById('eat-form-err').classList.add('hidden');
+      }
+      document.getElementById('eat-submit').addEventListener('click', () => {
+        const shop = document.getElementById('eat-f-shop').value.trim();
+        const err = document.getElementById('eat-form-err');
+        if (!shop) { err.textContent = '请填写店铺名称'; err.classList.remove('hidden'); return; }
+        err.classList.add('hidden');
+        const payload = {
+          shop_name: shop,
+          location: eatSubmitLoc,
+          intro: document.getElementById('eat-f-intro').value.trim(),
+          tags: document.getElementById('eat-f-tags').value.trim(),
+          images: eatImgs,
+        };
+        fetch('/api/foods', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(r => r.json().then(d => ({ ok: r.ok, d })))
+          .then(({ ok, d }) => {
+            close(); resetForm();
+            if (ok) showToast('提交成功，等待审核通过后展示 🎉');
+            else showToast(d.error || '提交失败，请重试');
+          })
+          .catch(() => { close(); resetForm(); showToast('网络错误，提交失败'); });
+      });
+    })();
+
+    /* ===================== 区块③：学什么 ===================== */
+    (function () {
+      const tabsEl = document.getElementById('study-tabs');
+      const listEl = document.getElementById('study-list');
+      const emptyEl = document.getElementById('study-empty');
+      const FALLBACK = ['服装设计', '产品设计', '工艺美术品设计', '视觉传达设计', '工业设计', '时尚品设计', '环境艺术设计', '专业八（占位）', '专业九（占位）'];
+      let items = [];
+      let cats = FALLBACK.slice();
+      let curCat = '全部';
+      let loaded = false;
+
+      function ensureLoaded() { load(); }   // 每次进入区块都重新拉取，保证后台审核后即时刷新展示
+      window.ensureStudyLoaded = ensureLoaded;
+
+      function load() {
+        Promise.all([
+          fetch('/api/study-categories').then(r => r.json()).then(d => (d.items || []).map(x => x.name)).catch(() => null),
+          fetch('/api/study').then(r => r.json()).then(d => d.items || []).catch(() => []),
+        ]).then(([c, its]) => {
+          cats = (c && c.length) ? c : FALLBACK.slice();
+          items = its;
+          renderTabs(); populateCategory(); render();
+        });
+      }
+      function renderTabs() {
+        const all = ['全部', ...cats];
+        tabsEl.innerHTML = all.map(c =>
+          `<button data-cat="${esc(c)}" class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium shrink-0 ${c === curCat ? 'border border-brand text-brand bg-brand-light' : 'border border-orange-200 text-gray-500'}">${esc(c)}</button>`
+        ).join('');
+      }
+      function populateCategory() {
+        const sel = document.getElementById('study-f-category');
+        sel.innerHTML = '<option value="">请选择归属专业</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      }
+      function render() {
+        const list = items.filter(it => curCat === '全部' || it.category === curCat);
+        if (!list.length) { listEl.innerHTML = ''; emptyEl.classList.remove('hidden'); return; }
+        emptyEl.classList.add('hidden');
+        listEl.innerHTML = list.map(studyCardHTML).join('');
+      }
+      function studyCardHTML(it) {
+        const imgs = parseImgs(it.images);
+        const img = imgs.length
+          ? `<img src="${imgs[0]}" class="w-full h-full object-cover" />`
+          : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-4xl">📚</div>`;
+        const courses = splitList(it.courses).map(tagPill).join('');
+        const dirs = splitList(it.directions).map(tagOutline).join('');
+        return `<article class="study-card transition-transform bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">
+          <div class="h-40 relative overflow-hidden">${img}</div>
+          <div class="p-4">
+            <div class="mb-1.5"><span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">${esc(it.category || '')}</span></div>
+            <h3 class="text-base font-bold text-gray-900 leading-snug">${esc(it.title)}</h3>
+            <p class="mt-1.5 text-xs text-gray-500 leading-6">${esc(it.intro)}</p>
+            ${courses ? `<div class="mt-2.5 flex flex-wrap gap-1.5"><span class="text-[11px] text-gray-400 mr-1 self-center">核心课程</span>${courses}</div>` : ''}
+            ${dirs ? `<div class="mt-2 flex flex-wrap gap-1.5"><span class="text-[11px] text-gray-400 mr-1 self-center">学习方向</span>${dirs}</div>` : ''}
+          </div>
+        </article>`;
+      }
+
+      tabsEl.addEventListener('click', e => {
+        const b = e.target.closest('.tab-pill');
+        if (!b) return;
+        curCat = b.dataset.cat; renderTabs(); render();
+      });
+
+      const modal = document.getElementById('study-modal');
+      const panel = modal.querySelector('.panel');
+      function open() {
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        panel.classList.remove('translate-y-full'); panel.classList.add('translate-y-0');
+        document.body.style.overflow = 'hidden';
+      }
+      function close(silent) {
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        panel.classList.add('translate-y-full'); panel.classList.remove('translate-y-0');
+        if (!silent) document.body.style.overflow = '';
+      }
+      window.studyOpenModal = open;
+      window.studyCloseModal = close;
+
+      let studyImgs = [];
+      document.getElementById('study-f-images').addEventListener('change', e => {
+        [...e.target.files].forEach(file => {
+          if (!file.type.startsWith('image/')) return;
+          resizeImage(file, 1000).then(d => { studyImgs.push(d); renderPrev(); });
+        });
+        e.target.value = '';
+      });
+      function renderPrev() {
+        document.getElementById('study-preview').innerHTML = studyImgs.map((src, i) =>
+          `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100">
+             <img src="${src}" class="w-full h-full object-cover" />
+             <button type="button" onclick="studyRemoveImg(${i})" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-5">✕</button>
+           </div>`).join('');
+      }
+      window.studyRemoveImg = (i) => { studyImgs.splice(i, 1); renderPrev(); };
+
+      let toastTimer;
+      function showToast(msg) {
+        const el = document.getElementById('study-toast');
+        el.textContent = msg;
+        el.classList.remove('opacity-0'); el.classList.add('opacity-100');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.add('opacity-0'); el.classList.remove('opacity-100'); }, 2200);
+      }
+      function resetForm() {
+        document.getElementById('study-f-title').value = '';
+        document.getElementById('study-f-intro').value = '';
+        document.getElementById('study-f-courses').value = '';
+        document.getElementById('study-f-directions').value = '';
+        document.getElementById('study-f-category').value = '';
+        studyImgs = []; renderPrev();
+        document.getElementById('study-form-err').classList.add('hidden');
+      }
+      document.getElementById('study-submit').addEventListener('click', () => {
+        const title = document.getElementById('study-f-title').value.trim();
+        const category = document.getElementById('study-f-category').value;
+        const err = document.getElementById('study-form-err');
+        if (!title) { err.textContent = '请填写标题'; err.classList.remove('hidden'); return; }
+        if (!category) { err.textContent = '请选择归属专业'; err.classList.remove('hidden'); return; }
+        err.classList.add('hidden');
+        const payload = {
+          title,
+          intro: document.getElementById('study-f-intro').value.trim(),
+          courses: document.getElementById('study-f-courses').value.trim(),
+          directions: document.getElementById('study-f-directions').value.trim(),
+          category,
+          images: studyImgs,
+        };
+        fetch('/api/study', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(r => r.json().then(d => ({ ok: r.ok, d })))
+          .then(({ ok, d }) => {
+            close(); resetForm();
+            if (ok) showToast('提交成功，等待审核通过后展示 🎉');
+            else showToast(d.error || '提交失败，请重试');
+          })
+          .catch(() => { close(); resetForm(); showToast('网络错误，提交失败'); });
+      });
+    })();
+
+    /* ===================== 区块④：玩什么 ===================== */
+    (function () {
+      const tabsEl = document.getElementById('play-tabs');
+      const listEl = document.getElementById('play-list');
+      const emptyEl = document.getElementById('play-empty');
+      const FALLBACK = ['社团', '学生会组织'];
+      let items = [];
+      let cats = FALLBACK.slice();
+      let curCat = '全部';
+      let loaded = false;
+
+      function ensureLoaded() { load(); }   // 每次进入区块都重新拉取，保证后台审核后即时刷新展示
+      window.ensurePlayLoaded = ensureLoaded;
+
+      function load() {
+        Promise.all([
+          fetch('/api/club-categories').then(r => r.json()).then(d => (d.items || []).map(x => x.name)).catch(() => null),
+          fetch('/api/clubs').then(r => r.json()).then(d => d.items || []).catch(() => []),
+        ]).then(([c, its]) => {
+          cats = (c && c.length) ? c : FALLBACK.slice();
+          items = its;
+          renderTabs(); populateCategory(); render();
+        });
+      }
+      function renderTabs() {
+        const all = ['全部', ...cats];
+        tabsEl.innerHTML = all.map(c =>
+          `<button data-cat="${esc(c)}" class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium shrink-0 ${c === curCat ? 'border border-brand text-brand bg-brand-light' : 'border border-orange-200 text-gray-500'}">${esc(c)}</button>`
+        ).join('');
+      }
+      function populateCategory() {
+        const sel = document.getElementById('play-f-category');
+        sel.innerHTML = '<option value="">请选择归属分类</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      }
+      function render() {
+        const list = items.filter(it => curCat === '全部' || it.category === curCat);
+        if (!list.length) { listEl.innerHTML = ''; emptyEl.classList.remove('hidden'); return; }
+        emptyEl.classList.add('hidden');
+        listEl.innerHTML = list.map(playCardHTML).join('');
+      }
+      function playCardHTML(it) {
+        const imgs = parseImgs(it.images);
+        const img = imgs.length
+          ? `<img src="${imgs[0]}" class="w-full h-full object-cover" />`
+          : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-4xl">🎮</div>`;
+        const lines = [];
+        if (it.recruit) lines.push(`<div class="mt-2.5"><span class="text-[11px] text-brand font-medium mr-1">招新要求</span><span class="text-xs text-gray-500 leading-6">${esc(it.recruit)}</span></div>`);
+        if (it.activities) lines.push(`<div class="mt-2.5"><span class="text-[11px] text-brand font-medium mr-1">艺术活动</span><span class="text-xs text-gray-500 leading-6">${esc(it.activities)}</span></div>`);
+        if (it.contact) lines.push(`<div class="mt-2.5"><span class="text-[11px] text-brand font-medium mr-1">联系方式</span><span class="text-xs text-gray-500 leading-6">${esc(it.contact)}</span></div>`);
+        return `<article class="club-card transition-transform bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">
+          <div class="h-40 relative overflow-hidden">${img}</div>
+          <div class="p-4">
+            <div class="mb-1.5"><span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">${esc(it.category || '')}</span></div>
+            <h3 class="text-base font-bold text-gray-900 leading-snug">${esc(it.org_name)}</h3>
+            <p class="mt-1.5 text-xs text-gray-500 leading-6">${esc(it.intro)}</p>
+            ${lines.join('')}
+          </div>
+        </article>`;
+      }
+
+      tabsEl.addEventListener('click', e => {
+        const b = e.target.closest('.tab-pill');
+        if (!b) return;
+        curCat = b.dataset.cat; renderTabs(); render();
+      });
+
+      const modal = document.getElementById('play-modal');
+      const panel = modal.querySelector('.panel');
+      function open() {
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        panel.classList.remove('translate-y-full'); panel.classList.add('translate-y-0');
+        document.body.style.overflow = 'hidden';
+      }
+      function close(silent) {
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        panel.classList.add('translate-y-full'); panel.classList.remove('translate-y-0');
+        if (!silent) document.body.style.overflow = '';
+      }
+      window.playOpenModal = open;
+      window.playCloseModal = close;
+
+      let playImgs = [];
+      document.getElementById('play-f-images').addEventListener('change', e => {
+        [...e.target.files].forEach(file => {
+          if (!file.type.startsWith('image/')) return;
+          resizeImage(file, 1000).then(d => { playImgs.push(d); renderPrev(); });
+        });
+        e.target.value = '';
+      });
+      function renderPrev() {
+        document.getElementById('play-preview').innerHTML = playImgs.map((src, i) =>
+          `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100">
+             <img src="${src}" class="w-full h-full object-cover" />
+             <button type="button" onclick="playRemoveImg(${i})" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-5">✕</button>
+           </div>`).join('');
+      }
+      window.playRemoveImg = (i) => { playImgs.splice(i, 1); renderPrev(); };
+
+      let toastTimer;
+      function showToast(msg) {
+        const el = document.getElementById('play-toast');
+        el.textContent = msg;
+        el.classList.remove('opacity-0'); el.classList.add('opacity-100');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.add('opacity-0'); el.classList.remove('opacity-100'); }, 2200);
+      }
+      function resetForm() {
+        document.getElementById('play-f-org_name').value = '';
+        document.getElementById('play-f-intro').value = '';
+        document.getElementById('play-f-recruit').value = '';
+        document.getElementById('play-f-activities').value = '';
+        document.getElementById('play-f-contact').value = '';
+        document.getElementById('play-f-category').value = '';
+        playImgs = []; renderPrev();
+        document.getElementById('play-form-err').classList.add('hidden');
+      }
+      document.getElementById('play-submit').addEventListener('click', () => {
+        const org = document.getElementById('play-f-org_name').value.trim();
+        const category = document.getElementById('play-f-category').value;
+        const err = document.getElementById('play-form-err');
+        if (!org) { err.textContent = '请填写组织名称'; err.classList.remove('hidden'); return; }
+        if (!category) { err.textContent = '请选择归属分类'; err.classList.remove('hidden'); return; }
+        err.classList.add('hidden');
+        const payload = {
+          org_name: org,
+          intro: document.getElementById('play-f-intro').value.trim(),
+          recruit: document.getElementById('play-f-recruit').value.trim(),
+          activities: document.getElementById('play-f-activities').value.trim(),
+          contact: document.getElementById('play-f-contact').value.trim(),
+          category,
+          images: playImgs,
+        };
+        fetch('/api/clubs', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(r => r.json().then(d => ({ ok: r.ok, d })))
+          .then(({ ok, d }) => {
+            close(); resetForm();
+            if (ok) showToast('提交成功，等待审核通过后展示 🎉');
+            else showToast(d.error || '提交失败，请重试');
+          })
+          .catch(() => { close(); resetForm(); showToast('网络错误，提交失败'); });
+      });
+    })();
+
+    /* =========================================================================
+     *  内嵌后台管理（与原独立 admin 页面功能一致，只是合并进同一页面）
+     * ========================================================================= */
+    const SECTIONS = [
+      { key: 'home', label: '首页' },
+      { key: 'studycats', label: '专业板块' },
+      { key: 'clubcats', label: '玩乐分类' },
+      { key: 'foods', label: '美食' },
+      { key: 'study', label: '学习资料' },
+      { key: 'clubs', label: '社团组织' },
+    ];
+    const admState = {
+      current: 'home',
+      foods: [], study: [], clubs: [], studyCats: [], clubCats: [],
+      carousel: [], homeTitle: '', intro: '',
+      filter: { foods: 'all', study: 'all', clubs: 'all' },
+    };
+    let adminLoaded = false;          // 后台数据是否已首次加载
+    let authed = false;               // 当前是否已登录（cookie 失效后复位）
+    let adminUser = '';
+    let modalImages = [];             // 弹窗内待上传图片（data URL）
+
+    function adminApi(method, path, body) {
+      const opts = { method, credentials: 'include', headers: {} };
+      if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      return fetch(path, opts).then((r) => {
+        if (r.status === 401) { onAuthFail(); throw new Error('unauthorized'); }
+        return r.json().catch(() => ({}));
+      });
+    }
+    function adminToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.remove('opacity-0'); t.classList.add('opacity-100');
+      clearTimeout(adminToast._t);
+      adminToast._t = setTimeout(() => { t.classList.add('opacity-0'); t.classList.remove('opacity-100'); }, 2000);
+    }
+    function adminThumb(src, emoji) {
+      return src
+        ? `<img src="${src}" class="w-full h-full object-cover" />`
+        : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-2xl">${emoji}</div>`;
+    }
+    function statusBadge(s) {
+      return s === 'pending'
+        ? '<span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">待审核</span>'
+        : '<span class="text-[11px] px-2 py-0.5 rounded-full border border-brand text-brand bg-brand-light">已发布</span>';
+    }
+
+    /* ---------- 模式切换 ---------- */
+    function showBrowse() {
+      document.getElementById('admin').classList.add('hidden');
+      document.getElementById('browse').classList.remove('hidden');
+      localStorage.setItem('cg_last_view', 'browse');
+      window.scrollTo(0, 0);
+      loadHome(); // 返回时刷新首页，确保后台改动已生效
+    }
+    function showAdmin() {
+      if (!EDITABLE) { openEditModal(); return; } // 只读模式引导输入编辑密码解锁
+      if (!authed && LAN_MODE) { openLoginModal(); return; } // 局域网仍要求管理员登录；外部已解锁则直接进入
+      document.getElementById('browse').classList.add('hidden');
+      document.getElementById('admin').classList.remove('hidden');
+      localStorage.setItem('cg_last_view', 'admin');
+      window.scrollTo(0, 0);
+      if (!adminLoaded) { adminLoadAll(); adminLoaded = true; }
+      else { goSection(admState.current); }
+    }
+    function onManageClick() {
+      // 首页右上角「管理入口」：已登录则直接进后台，否则弹登录
+      showAdmin();
+    }
+    function onAuthFail() {
+      authed = false; adminLoaded = false;
+      showBrowse();
+      openLoginModal();
+    }
+
+    /* ---------- 登录弹窗 ---------- */
+    function openLoginModal() {
+      const m = document.getElementById('login-modal');
+      const p = document.getElementById('login-panel');
+      m.classList.add('opacity-100', 'pointer-events-auto');
+      m.classList.remove('opacity-0', 'pointer-events-none');
+      p.classList.remove('translate-y-full'); p.classList.add('translate-y-0');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLoginModal() {
+      const m = document.getElementById('login-modal');
+      const p = document.getElementById('login-panel');
+      m.classList.remove('opacity-100', 'pointer-events-auto');
+      m.classList.add('opacity-0', 'pointer-events-none');
+      p.classList.add('translate-y-full'); p.classList.remove('translate-y-0');
+      document.body.style.overflow = '';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-err').classList.add('hidden');
+    }
+    function doLogin() {
+      const username = document.getElementById('login-user').value.trim();
+      const password = document.getElementById('login-pass').value.trim();
+      const err = document.getElementById('login-err');
+      err.classList.add('hidden');
+      if (!username || !password) {
+        err.textContent = '请输入账号和密码';
+        err.classList.remove('hidden');
+        return;
+      }
+      fetch('/api/admin/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })
+        .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+        .then(({ ok, d }) => {
+          if (ok) {
+            authed = true; adminUser = d.username || username;
+            closeLoginModal();
+            showAdmin();
+          } else {
+            err.textContent = '登录失败：' + (d.error || '账号或密码错误');
+            err.classList.remove('hidden');
+          }
+        })
+        .catch(() => {
+          err.textContent = '无法连接服务器，请确认服务已启动';
+          err.classList.remove('hidden');
+        });
+    }
+    function doLogout() {
+      fetch('/api/admin/logout', { method: 'POST', credentials: 'include' })
+        .then(() => { authed = false; adminLoaded = false; })
+        .finally(() => showBrowse());
+    }
+
+    /* ---------- 后台通用弹窗（新增/编辑） ---------- */
+    function openModal(title) {
+      document.getElementById('modal-title').textContent = title;
+      const m = document.getElementById('modal');
+      m.classList.add('opacity-100', 'pointer-events-auto'); m.classList.remove('opacity-0', 'pointer-events-none');
+      m.querySelector('.panel').classList.remove('translate-y-full'); m.querySelector('.panel').classList.add('translate-y-0');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      const m = document.getElementById('modal');
+      m.classList.remove('opacity-100', 'pointer-events-auto'); m.classList.add('opacity-0', 'pointer-events-none');
+      m.querySelector('.panel').classList.add('translate-y-full'); m.querySelector('.panel').classList.remove('translate-y-0');
+      document.body.style.overflow = '';
+      document.getElementById('modal-body').innerHTML = '';
+      modalImages = [];
+    }
+    function bindModalImages() {
+      const inp = document.getElementById('m-images');
+      if (!inp) return;
+      inp.addEventListener('change', (e) => {
+        [...e.target.files].forEach((file) => {
+          if (!file.type.startsWith('image/')) return;
+          resizeImage(file, 1000).then((d) => { modalImages.push(d); renderModalPreview(); });
+        });
+        e.target.value = '';
+      });
+    }
+    function renderModalPreview() {
+      const box = document.getElementById('m-preview');
+      if (!box) return;
+      box.innerHTML = modalImages.map((src, i) =>
+        `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100">
+           <img src="${src}" class="w-full h-full object-cover" />
+           <button type="button" onclick="removeModalImg(${i})" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-5">✕</button>
+         </div>`).join('');
+    }
+    window.removeModalImg = (i) => { modalImages.splice(i, 1); renderModalPreview(); };
+
+    /* ---------- 后台导航 ---------- */
+    function renderNav() {
+      document.getElementById('navTabs').innerHTML = SECTIONS.map((s) =>
+        `<button data-k="${s.key}" onclick="goSection('${s.key}')"
+          class="whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border transition shrink-0
+          ${s.key === admState.current ? 'bg-brand text-white border-brand' : 'bg-white text-brand border-orange-200'}">${s.label}</button>`
+      ).join('');
+    }
+    function goSection(key) {
+      admState.current = key;
+      renderNav();
+      document.querySelectorAll('#admin .panel').forEach((p) => p.classList.add('hidden'));
+      document.getElementById('panel-' + key).classList.remove('hidden');
+      if (key === 'home') loadAdminHome();
+      if (key === 'studycats') loadStudyCats();
+      if (key === 'clubcats') loadClubCats();
+      if (key === 'foods') loadFoods();
+      if (key === 'study') loadStudy();
+      if (key === 'clubs') loadClubs();
+    }
+    function adminLoadAll() {
+      document.getElementById('who').textContent = '管理员：' + (adminUser || '');
+      renderNav();
+      goSection('home');
+    }
+
+    /* ---------- 数据加载 ---------- */
+    function loadAdminHome() {
+      adminApi('GET', '/api/carousel').then((d) => renderCarousel(d.items || []));
+      adminApi('GET', '/api/intro').then((d) => { admState.intro = d.content || ''; const t = document.getElementById('intro-text'); if (t) t.value = admState.intro; });
+      adminApi('GET', '/api/home-title').then((d) => { admState.homeTitle = d.title || ''; const i = document.getElementById('home-title-input'); if (i) i.value = admState.homeTitle; });
+    }
+    function loadStudyCats() { adminApi('GET', '/api/admin/study-categories').then((d) => { admState.studyCats = d.items || []; renderStudyCats(); }); }
+    function loadClubCats() { adminApi('GET', '/api/admin/club-categories').then((d) => { admState.clubCats = d.items || []; renderClubCats(); }); }
+    function loadFoods() { adminApi('GET', '/api/admin/foods').then((d) => { admState.foods = d.items || []; renderFoods(); }); }
+    function loadStudy() { adminApi('GET', '/api/admin/study').then((d) => { admState.study = d.items || []; renderStudy(); }); }
+    function loadClubs() { adminApi('GET', '/api/admin/clubs').then((d) => { admState.clubs = d.items || []; renderClubs(); }); }
+
+    /* ---------- 板块一：首页设置 ---------- */
+    function renderCarousel(items) {
+      admState.carousel = items;
+      const imgs = items.map((it, i) =>
+        `<div class="relative w-28 shrink-0 rounded-2xl overflow-hidden border border-orange-50 bg-white">
+           <div class="h-20">${adminThumb(it.image, '🏫')}</div>
+           <div class="px-1.5 py-1 text-[11px] text-gray-500 truncate">${esc(it.caption || '无标题')}</div>
+           <div class="flex border-t border-orange-50">
+             <button type="button" onclick="moveCarousel(${it.id},'up')" ${i === 0 ? 'disabled' : ''} class="flex-1 py-2.5 text-base ${i === 0 ? 'text-gray-200' : 'text-brand active:scale-95'}">↑ 上移</button>
+             <button type="button" onclick="moveCarousel(${it.id},'down')" ${i === items.length - 1 ? 'disabled' : ''} class="flex-1 py-2.5 text-base border-l border-orange-50 ${i === items.length - 1 ? 'text-gray-200' : 'text-brand active:scale-95'}">↓ 下移</button>
+           </div>
+           <button type="button" onclick="delCarousel(${it.id})" class="absolute top-1 right-1 w-7 h-7 rounded-full bg-black/55 text-white text-sm leading-7">✕</button>
+         </div>`).join('');
+      document.getElementById('panel-home').innerHTML = `
+        <h2 class="text-base font-bold text-gray-900 mb-3">首页大标题</h2>
+        <input id="home-title-input" type="text" value="${esc(admState.homeTitle || '')}" placeholder="创新创意设计艺术学院（香蜜校区）" class="admin-input w-full mb-3 px-4 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <button onclick="saveHomeTitle()" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition">保存标题</button>
+        <p class="text-[11px] text-gray-400 mt-2">修改后刷新前端首页立即生效</p>
+
+        <h2 class="text-base font-bold text-gray-900 mt-7 mb-3">轮播图管理</h2>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">${imgs || '<p class="text-sm text-gray-300">暂无轮播图</p>'}</div>
+        <p class="text-[11px] text-gray-400 mb-2">↑ ↓ 调整顺序，最左为第一张（改完即同步前端）</p>
+        <div class="mt-2 bg-gray-50 rounded-3xl p-4 border border-orange-50">
+          <label class="block text-sm font-medium text-gray-700 mb-1">新增轮播图</label>
+          <input id="c-image" type="file" accept="image/*" class="hidden" />
+          <label for="c-image" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择轮播图（支持相册）</label>
+          <input id="c-caption" type="text" placeholder="图片说明（如：校区环境）" class="admin-input w-full mb-3 px-4 rounded-2xl bg-white border border-orange-50 text-sm outline-none focus:border-brand" />
+          <button onclick="addCarousel()" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition">上传轮播图</button>
+        </div>
+
+        <h2 class="text-base font-bold text-gray-900 mt-7 mb-3">学院简介文字</h2>
+        <textarea id="intro-text" rows="6" class="admin-input w-full px-4 rounded-3xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+        <button onclick="saveIntro()" class="admin-btn mt-3 w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition">保存简介</button>
+      `;
+      const t = document.getElementById('intro-text'); if (t) t.value = admState.intro || '';
+    }
+    window.saveHomeTitle = () => {
+      const title = document.getElementById('home-title-input').value.trim();
+      if (!title) { adminToast('标题不能为空'); return; }
+      adminApi('PUT', '/api/admin/home-title', { title }).then(() => { admState.homeTitle = title; adminToast('标题已保存，前端即时生效'); });
+    };
+    window.moveCarousel = (id, dir) => {
+      const arr = admState.carousel;
+      const i = arr.findIndex((x) => x.id === id);
+      if (i < 0) return;
+      if (dir === 'up' && i > 0) { const tmp = arr[i - 1]; arr[i - 1] = arr[i]; arr[i] = tmp; }
+      else if (dir === 'down' && i < arr.length - 1) { const tmp = arr[i + 1]; arr[i + 1] = arr[i]; arr[i] = tmp; }
+      else return;
+      adminApi('POST', '/api/admin/carousel/reorder', { ids: arr.map((x) => x.id) })
+        .then(() => { renderCarousel(arr); adminToast('顺序已更新'); })
+        .catch(() => { loadAdminHome(); });
+    };
+    window.addCarousel = () => {
+      const file = document.getElementById('c-image').files[0];
+      if (!file) { adminToast('请先选择图片'); return; }
+      resizeImage(file, 1200).then((dataUrl) => {
+        adminApi('POST', '/api/admin/carousel', { image: dataUrl, caption: document.getElementById('c-caption').value.trim() })
+          .then(() => { adminToast('轮播图已上传'); loadAdminHome(); });
+      });
+    };
+    window.delCarousel = (id) => {
+      if (!confirm('确定删除这张轮播图？')) return;
+      adminApi('DELETE', '/api/admin/carousel/' + id).then(() => { adminToast('已删除'); loadAdminHome(); });
+    };
+    window.saveIntro = () => {
+      const content = document.getElementById('intro-text').value.trim();
+      if (!content) { adminToast('简介内容不能为空'); return; }
+      adminApi('PUT', '/api/admin/intro', { content }).then(() => adminToast('简介已保存'));
+    };
+
+    /* ---------- 板块二：专业板块管理 ---------- */
+    function renderStudyCats() {
+      const rows = admState.studyCats.map((c) =>
+        `<div class="bg-white rounded-3xl shadow-card border border-orange-50 p-3 flex items-center gap-3 mb-3">
+           <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0">${adminThumb(c.cover, '🎨')}</div>
+           <div class="flex-1 min-w-0">
+             <div class="font-bold text-gray-900">${esc(c.name)}</div>
+             <div class="text-[11px] text-gray-400 truncate">${esc(c.intro || '暂无简介')}</div>
+           </div>
+           <div class="flex flex-col gap-2">
+             <button onclick="openStudyCatModal(${c.id})" class="admin-btn text-[14px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">编辑</button>
+             <button onclick="delStudyCat(${c.id})" class="admin-btn text-[14px] text-red-500 bg-red-50 px-5 rounded-full active:scale-95 transition">删除</button>
+           </div>
+         </div>`).join('');
+      document.getElementById('panel-studycats').innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-gray-900">专业板块（对应“学什么”）</h2>
+          <button onclick="openStudyCatModal()" class="admin-btn text-[15px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">＋ 新增</button>
+        </div>
+        ${rows || '<p class="text-sm text-gray-300 py-8 text-center">还没有专业板块</p>'}
+      `;
+    }
+    window.openStudyCatModal = (id) => {
+      modalImages = [];
+      const c = id ? admState.studyCats.find((x) => x.id === id) : null;
+      document.getElementById('modal-body').innerHTML = `
+        <label class="block text-sm font-medium text-gray-700 mb-1">板块名称</label>
+        <input id="m-name" type="text" placeholder="如：服装设计" value="${c ? esc(c.name) : ''}" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">板块简介</label>
+        <textarea id="m-intro" rows="3" placeholder="一句话介绍该专业" class="w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${c ? esc(c.intro) : ''}</textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">板块封面图（可选）</label>
+        <input id="m-images" type="file" accept="image/*" class="hidden" />
+        <label for="m-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择封面图（支持相册）</label>
+        <div id="m-preview" class="flex flex-wrap gap-2 mb-2">${c && c.cover ? `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100"><img src="${c.cover}" class="w-full h-full object-cover" /><button type="button" onclick="modalImages=[];renderModalPreview()" class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-5">✕</button></div>` : ''}</div>
+        <button id="m-save" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition mt-2">${c ? '保存修改' : '创建板块'}</button>
+      `;
+      bindModalImages();
+      document.getElementById('m-save').onclick = () => {
+        const name = document.getElementById('m-name').value.trim();
+        if (!name) { adminToast('请填写板块名称'); return; }
+        const cover = modalImages[0] || (c ? c.cover : '');
+        const payload = { name, intro: document.getElementById('m-intro').value.trim(), cover };
+        const p = c ? adminApi('PUT', '/api/admin/study-categories/' + c.id, payload) : adminApi('POST', '/api/admin/study-categories', payload);
+        p.then(() => { adminToast(c ? '已保存' : '已创建'); closeModal(); loadStudyCats(); }).catch(() => adminToast('名称可能重复'));
+      };
+      openModal(c ? '编辑专业板块' : '新增专业板块');
+    };
+    window.delStudyCat = (id) => {
+      if (!confirm('删除后该板块下的学习资料将变为“未分类”，确定？')) return;
+      adminApi('DELETE', '/api/admin/study-categories/' + id).then(() => { adminToast('已删除'); loadStudyCats(); });
+    };
+
+    /* ---------- 板块三：玩乐分类管理 ---------- */
+    function renderClubCats() {
+      const rows = admState.clubCats.map((c) =>
+        `<div class="bg-white rounded-3xl shadow-card border border-orange-50 p-3 flex items-center gap-3 mb-3">
+           <div class="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center text-brand">🏷️</div>
+           <div class="flex-1 font-bold text-gray-900">${esc(c.name)}</div>
+           <div class="flex gap-1.5">
+             <button onclick="openClubCatModal(${c.id})" class="admin-btn text-[14px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">编辑</button>
+             <button onclick="delClubCat(${c.id})" class="admin-btn text-[14px] text-red-500 bg-red-50 px-5 rounded-full active:scale-95 transition">删除</button>
+           </div>
+         </div>`).join('');
+      document.getElementById('panel-clubcats').innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-gray-900">玩乐分类（对应“玩什么”）</h2>
+          <button onclick="openClubCatModal()" class="admin-btn text-[15px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">＋ 新增</button>
+        </div>
+        ${rows || '<p class="text-sm text-gray-300 py-8 text-center">还没有分类</p>'}
+      `;
+    }
+    window.openClubCatModal = (id) => {
+      const c = id ? admState.clubCats.find((x) => x.id === id) : null;
+      document.getElementById('modal-body').innerHTML = `
+        <label class="block text-sm font-medium text-gray-700 mb-1">分类名称</label>
+        <input id="m-name" type="text" placeholder="如：社团 / 学生会组织 / 工作室" value="${c ? esc(c.name) : ''}" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <button id="m-save" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition mt-2">${c ? '保存修改' : '创建分类'}</button>
+      `;
+      document.getElementById('m-save').onclick = () => {
+        const name = document.getElementById('m-name').value.trim();
+        if (!name) { adminToast('请填写分类名称'); return; }
+        const p = c ? adminApi('PUT', '/api/admin/club-categories/' + c.id, { name }) : adminApi('POST', '/api/admin/club-categories', { name });
+        p.then(() => { adminToast(c ? '已保存' : '已创建'); closeModal(); loadClubCats(); }).catch(() => adminToast('名称可能重复'));
+      };
+      openModal(c ? '编辑玩乐分类' : '新增玩乐分类');
+    };
+    window.delClubCat = (id) => {
+      if (!confirm('删除后该分类下的社团将变为“未分类”，确定？')) return;
+      adminApi('DELETE', '/api/admin/club-categories/' + id).then(() => { adminToast('已删除'); loadClubCats(); });
+    };
+
+    /* ---------- 板块四：美食管理 ---------- */
+    function renderFoods() {
+      const f = admState.filter.foods;
+      const list = admState.foods.filter((x) => f === 'all' || x.status === f);
+      const pills = [['all', '全部'], ['pending', '待审核'], ['approved', '已发布']].map(([k, lab]) =>
+        `<button onclick="setFilter('foods','${k}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${admState.filter.foods === k ? 'bg-brand text-white border-brand' : 'bg-white text-brand border-orange-200'}">${lab}</button>`).join('');
+      const rows = list.map((x) => {
+        const imgs = safeParse(x.images);
+        return `<div class="bg-white rounded-3xl shadow-card border border-orange-50 p-3 mb-3">
+          <div class="flex gap-3">
+            <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0">${adminThumb(imgs[0], '🥘')}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2"><span class="font-bold text-gray-900 truncate">${esc(x.shop_name)}</span>${statusBadge(x.status)}</div>
+              <div class="text-[11px] text-brand">${x.location === '周边' ? '校区周边' : '香蜜校区食堂'}</div>
+              <div class="text-[11px] text-gray-400 truncate">${esc(x.intro || '')}</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-2">${(x.tags || '').split(',').map((t) => t.trim()).filter(Boolean).map((t) => `<span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">${esc(t)}</span>`).join('')}</div>
+          <div class="flex gap-2 mt-3">
+            ${x.status === 'pending' ? `<button onclick="approve('foods',${x.id})" class="flex-1 bg-brand text-white rounded-xl py-3 text-[14px] font-bold active:scale-95 transition">通过审核</button><button onclick="reject('foods',${x.id})" class="flex-1 bg-gray-100 text-gray-500 rounded-xl py-3 text-[14px] active:scale-95 transition">驳回</button>` : ''}
+            <button onclick="openFoodModal(${x.id})" class="flex-1 bg-brand-light text-brand rounded-xl py-3 text-[14px] font-bold active:scale-95 transition">编辑</button>
+            <button onclick="delItem('foods',${x.id})" class="flex-1 bg-red-50 text-red-500 rounded-xl py-3 text-[14px] active:scale-95 transition">删除</button>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('panel-foods').innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-gray-900">美食管理（吃什么）</h2>
+          <button onclick="openFoodModal()" class="admin-btn text-[15px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">＋ 新增</button>
+        </div>
+        <div class="flex gap-2 mb-3 no-scrollbar overflow-x-auto">${pills}</div>
+        ${rows || '<p class="text-sm text-gray-300 py-8 text-center">该筛选下暂无内容</p>'}
+      `;
+    }
+    window.openFoodModal = (id) => {
+      modalImages = [];
+      const x = id ? admState.foods.find((o) => o.id === id) : null;
+      const imgs = x ? safeParse(x.images) : [];
+      document.getElementById('modal-body').innerHTML = `
+        <label class="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+        <input id="m-shop_name" type="text" value="${x ? esc(x.shop_name) : ''}" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">位置</label>
+        <select id="m-location" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+          <option value="校内" ${x && x.location === '校内' ? 'selected' : ''}>香蜜校区食堂</option>
+          <option value="周边" ${x && x.location === '周边' ? 'selected' : ''}>校区周边</option>
+        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">简介</label>
+        <textarea id="m-intro" rows="2" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.intro) : ''}</textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">特色标签（逗号分隔）</label>
+        <input id="m-tags" type="text" value="${x ? esc(x.tags) : ''}" placeholder="如：性价比高,出餐快" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+        <select id="m-status" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+          <option value="approved" ${!x || x.status === 'approved' ? 'selected' : ''}>已发布</option>
+          <option value="pending" ${x && x.status === 'pending' ? 'selected' : ''}>待审核</option>
+        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">图片（可多张）</label>
+        <input id="m-images" type="file" accept="image/*" multiple class="hidden" />
+        <label for="m-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择图片（支持相册多选）</label>
+        <div id="m-preview" class="flex flex-wrap gap-2 mb-2">${imgs.map((src) => `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100"><img src="${src}" class="w-full h-full object-cover" /></div>`).join('')}</div>
+        <button id="m-save" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition mt-2">${x ? '保存修改' : '新增美食'}</button>
+      `;
+      if (x) modalImages = imgs.slice();
+      bindModalImages();
+      document.getElementById('m-save').onclick = () => {
+        const shop_name = document.getElementById('m-shop_name').value.trim();
+        if (!shop_name) { adminToast('请填写店铺名称'); return; }
+        const payload = {
+          shop_name,
+          location: document.getElementById('m-location').value,
+          intro: document.getElementById('m-intro').value.trim(),
+          tags: document.getElementById('m-tags').value.trim(),
+          status: document.getElementById('m-status').value,
+          images: modalImages,
+        };
+        const p = x ? adminApi('PUT', '/api/admin/foods/' + x.id, payload) : adminApi('POST', '/api/admin/foods', payload);
+        p.then(() => { adminToast(x ? '已保存' : '已新增'); closeModal(); loadFoods(); }).catch(() => adminToast('操作失败'));
+      };
+      openModal(x ? '编辑美食' : '新增美食');
+    };
+
+    /* ---------- 板块五：学习资料管理 ---------- */
+    function renderStudy() {
+      const f = admState.filter.study;
+      const list = admState.study.filter((x) => f === 'all' || x.status === f);
+      const pills = [['all', '全部'], ['pending', '待审核'], ['approved', '已发布']].map(([k, lab]) =>
+        `<button onclick="setFilter('study','${k}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${admState.filter.study === k ? 'bg-brand text-white border-brand' : 'bg-white text-brand border-orange-200'}">${lab}</button>`).join('');
+      const rows = list.map((x) => {
+        const imgs = safeParse(x.images);
+        return `<div class="bg-white rounded-3xl shadow-card border border-orange-50 p-3 mb-3">
+          <div class="flex gap-3">
+            <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0">${adminThumb(imgs[0], '📚')}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2"><span class="font-bold text-gray-900 truncate">${esc(x.title)}</span>${statusBadge(x.status)}</div>
+              <div class="text-[11px] text-brand">${esc(x.category || '未分类')}</div>
+              <div class="text-[11px] text-gray-400 truncate">${esc(x.intro || '')}</div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            ${x.status === 'pending' ? `<button onclick="approve('study',${x.id})" class="flex-1 bg-brand text-white rounded-xl py-3 text-[14px] font-bold active:scale-95 transition">通过审核</button><button onclick="reject('study',${x.id})" class="flex-1 bg-gray-100 text-gray-500 rounded-xl py-3 text-[14px] active:scale-95 transition">驳回</button>` : ''}
+            <button onclick="openStudyModal(${x.id})" class="flex-1 bg-brand-light text-brand rounded-xl py-3 text-[14px] font-bold active:scale-95 transition">编辑</button>
+            <button onclick="delItem('study',${x.id})" class="flex-1 bg-red-50 text-red-500 rounded-xl py-3 text-[14px] active:scale-95 transition">删除</button>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('panel-study').innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-gray-900">学习资料管理（学什么）</h2>
+          <button onclick="openStudyModal()" class="admin-btn text-[15px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">＋ 新增</button>
+        </div>
+        <div class="flex gap-2 mb-3 no-scrollbar overflow-x-auto">${pills}</div>
+        ${rows || '<p class="text-sm text-gray-300 py-8 text-center">该筛选下暂无内容</p>'}
+      `;
+    }
+    window.openStudyModal = (id) => {
+      modalImages = [];
+      const x = id ? admState.study.find((o) => o.id === id) : null;
+      const imgs = x ? safeParse(x.images) : [];
+      const opts = admState.studyCats.map((c) => `<option value="${esc(c.name)}" ${x && x.category === c.name ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+      document.getElementById('modal-body').innerHTML = `
+        <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
+        <input id="m-title" type="text" value="${x ? esc(x.title) : ''}" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">内容 / 笔记 / 经验</label>
+        <textarea id="m-intro" rows="3" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.intro) : ''}</textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">归属专业板块</label>
+        <select id="m-category" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+          <option value="">未分类</option>${opts}
+        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">核心课程（逗号分隔）</label>
+        <input id="m-courses" type="text" value="${x ? esc(x.courses) : ''}" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">学习方向（逗号分隔）</label>
+        <input id="m-directions" type="text" value="${x ? esc(x.directions) : ''}" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+        <select id="m-status" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+          <option value="approved" ${!x || x.status === 'approved' ? 'selected' : ''}>已发布</option>
+          <option value="pending" ${x && x.status === 'pending' ? 'selected' : ''}>待审核</option>
+        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">图片（可多张）</label>
+        <input id="m-images" type="file" accept="image/*" multiple class="hidden" />
+        <label for="m-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择图片（支持相册多选）</label>
+        <div id="m-preview" class="flex flex-wrap gap-2 mb-2">${imgs.map((src) => `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100"><img src="${src}" class="w-full h-full object-cover" /></div>`).join('')}</div>
+        <button id="m-save" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition mt-2">${x ? '保存修改' : '新增资料'}</button>
+      `;
+      if (x) modalImages = imgs.slice();
+      bindModalImages();
+      document.getElementById('m-save').onclick = () => {
+        const title = document.getElementById('m-title').value.trim();
+        if (!title) { adminToast('请填写标题'); return; }
+        const payload = {
+          title,
+          intro: document.getElementById('m-intro').value.trim(),
+          category: document.getElementById('m-category').value,
+          courses: document.getElementById('m-courses').value.trim(),
+          directions: document.getElementById('m-directions').value.trim(),
+          status: document.getElementById('m-status').value,
+          images: modalImages,
+        };
+        const p = x ? adminApi('PUT', '/api/admin/study/' + x.id, payload) : adminApi('POST', '/api/admin/study', payload);
+        p.then(() => { adminToast(x ? '已保存' : '已新增'); closeModal(); loadStudy(); }).catch(() => adminToast('操作失败'));
+      };
+      openModal(x ? '编辑学习资料' : '新增学习资料');
+    };
+
+    /* ---------- 板块六：社团组织管理 ---------- */
+    function renderClubs() {
+      const f = admState.filter.clubs;
+      const list = admState.clubs.filter((x) => f === 'all' || x.status === f);
+      const pills = [['all', '全部'], ['pending', '待审核'], ['approved', '已发布']].map(([k, lab]) =>
+        `<button onclick="setFilter('clubs','${k}')" class="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${admState.filter.clubs === k ? 'bg-brand text-white border-brand' : 'bg-white text-brand border-orange-200'}">${lab}</button>`).join('');
+      const rows = list.map((x) => {
+        const imgs = safeParse(x.images);
+        return `<div class="bg-white rounded-3xl shadow-card border border-orange-50 p-3 mb-3">
+          <div class="flex gap-3">
+            <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0">${adminThumb(imgs[0], '🎮')}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2"><span class="font-bold text-gray-900 truncate">${esc(x.org_name)}</span>${statusBadge(x.status)}</div>
+              <div class="text-[11px] text-brand">${esc(x.category || '未分类')}</div>
+              <div class="text-[11px] text-gray-400 truncate">${esc(x.intro || '')}</div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            ${x.status === 'pending' ? `<button onclick="approve('clubs',${x.id})" class="flex-1 bg-brand text-white rounded-xl py-3 text-[14px] font-bold active:scale-95 transition">通过审核</button><button onclick="reject('clubs',${x.id})" class="flex-1 bg-gray-100 text-gray-500 rounded-xl py-3 text-[14px] active:scale-95 transition">驳回</button>` : ''}
+            <button onclick="openClubModal(${x.id})" class="flex-1 bg-brand-light text-brand rounded-xl py-3 text-[14px] font-bold active:scale-95 transition">编辑</button>
+            <button onclick="delItem('clubs',${x.id})" class="flex-1 bg-red-50 text-red-500 rounded-xl py-3 text-[14px] active:scale-95 transition">删除</button>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('panel-clubs').innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-bold text-gray-900">社团组织管理（玩什么）</h2>
+          <button onclick="openClubModal()" class="admin-btn text-[15px] text-brand bg-brand-light px-5 rounded-full active:scale-95 transition">＋ 新增</button>
+        </div>
+        <div class="flex gap-2 mb-3 no-scrollbar overflow-x-auto">${pills}</div>
+        ${rows || '<p class="text-sm text-gray-300 py-8 text-center">该筛选下暂无内容</p>'}
+      `;
+    }
+    window.openClubModal = (id) => {
+      modalImages = [];
+      const x = id ? admState.clubs.find((o) => o.id === id) : null;
+      const imgs = x ? safeParse(x.images) : [];
+      const opts = admState.clubCats.map((c) => `<option value="${esc(c.name)}" ${x && x.category === c.name ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+      document.getElementById('modal-body').innerHTML = `
+        <label class="block text-sm font-medium text-gray-700 mb-1">社团 / 部门 / 工作室名称</label>
+        <input id="m-org_name" type="text" value="${x ? esc(x.org_name) : ''}" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">归属分类</label>
+        <select id="m-category" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+          <option value="">未分类</option>${opts}
+        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">简介</label>
+        <textarea id="m-intro" rows="2" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.intro) : ''}</textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">招新要求</label>
+        <textarea id="m-recruit" rows="2" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.recruit) : ''}</textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">艺术活动介绍</label>
+        <textarea id="m-activities" rows="2" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.activities) : ''}</textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">联系方式</label>
+        <input id="m-contact" type="text" value="${x ? esc(x.contact) : ''}" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
+        <select id="m-status" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
+          <option value="approved" ${!x || x.status === 'approved' ? 'selected' : ''}>已发布</option>
+          <option value="pending" ${x && x.status === 'pending' ? 'selected' : ''}>待审核</option>
+        </select>
+        <label class="block text-sm font-medium text-gray-700 mb-1">图片（可多张）</label>
+        <input id="m-images" type="file" accept="image/*" multiple class="hidden" />
+        <label for="m-images" class="block w-full mb-2 text-center px-4 py-3.5 rounded-2xl bg-brand-light text-brand text-[15px] font-medium active:scale-[0.98] transition cursor-pointer">📷 点击选择图片（支持相册多选）</label>
+        <div id="m-preview" class="flex flex-wrap gap-2 mb-2">${imgs.map((src) => `<div class="relative w-20 h-20 rounded-2xl overflow-hidden border border-orange-100"><img src="${src}" class="w-full h-full object-cover" /></div>`).join('')}</div>
+        <button id="m-save" class="admin-btn w-full bg-brand text-white rounded-2xl font-bold text-[15px] active:scale-[0.98] transition mt-2">${x ? '保存修改' : '新增社团'}</button>
+      `;
+      if (x) modalImages = imgs.slice();
+      bindModalImages();
+      document.getElementById('m-save').onclick = () => {
+        const org_name = document.getElementById('m-org_name').value.trim();
+        if (!org_name) { adminToast('请填写名称'); return; }
+        const payload = {
+          org_name,
+          category: document.getElementById('m-category').value,
+          intro: document.getElementById('m-intro').value.trim(),
+          recruit: document.getElementById('m-recruit').value.trim(),
+          activities: document.getElementById('m-activities').value.trim(),
+          contact: document.getElementById('m-contact').value.trim(),
+          status: document.getElementById('m-status').value,
+          images: modalImages,
+        };
+        const p = x ? adminApi('PUT', '/api/admin/clubs/' + x.id, payload) : adminApi('POST', '/api/admin/clubs', payload);
+        p.then(() => { adminToast(x ? '已保存' : '已新增'); closeModal(); loadClubs(); }).catch(() => adminToast('操作失败'));
+      };
+      openModal(x ? '编辑社团' : '新增社团');
+    };
+
+    /* ---------- 通用：筛选 / 审核 / 删除 ---------- */
+    window.setFilter = (mod, k) => { admState.filter[mod] = k; if (mod === 'foods') renderFoods(); if (mod === 'study') renderStudy(); if (mod === 'clubs') renderClubs(); };
+    window.approve = (mod, id) => { adminApi('POST', `/api/admin/${mod}/${id}/approve`).then(() => { adminToast('已通过审核，前台即时展示'); refresh(mod); }); };
+    window.reject = (mod, id) => { if (!confirm('驳回将丢弃该投稿，确定？')) return; adminApi('POST', `/api/admin/${mod}/${id}/reject`).then(() => { adminToast('已驳回'); refresh(mod); }); };
+    window.delItem = (mod, id) => { if (!confirm('确定删除？此操作不可恢复')) return; adminApi('DELETE', `/api/admin/${mod}/${id}`).then(() => { adminToast('已删除'); refresh(mod); }); };
+    function refresh(mod) { if (mod === 'foods') loadFoods(); if (mod === 'study') loadStudy(); if (mod === 'clubs') loadClubs(); }
+
+    /* ---------- 启动：检查登录态（cookie 本地缓存，刷新无需重复登录） ---------- */
+    fetch('/api/admin/me', { credentials: 'include' })
+      .then((r) => r.json().catch(() => ({})))
+      .then((d) => {
+        if (d.authenticated) {
+          authed = true; adminUser = d.username || '';
+          if (EDITABLE && (localStorage.getItem('cg_last_view') || 'browse') === 'admin') showAdmin();
+        }
+      })
+      .catch(() => {});
+    // 回车登录
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !document.getElementById('login-modal').classList.contains('opacity-0')) doLogin();
+    });
+
+    /* ===================== 网络模式：同一局域网可编辑 / 外部网络只读 ===================== */
+    // 与后端 isPrivateHost 判断一致：以「访问地址的 hostname」判定是否在同一局域网
+    function isPrivateHostname(host) {
+      host = (host || '').toLowerCase().split(':')[0].trim();
+      if (!host) return false;
+      if (host === 'localhost' || host === '[::1]' || host === '::1' || host.endsWith('.local')) return true;
+      if (host.startsWith('fe80') || host.startsWith('fc') || host.startsWith('fd')) return true; // IPv6 链路/唯一本地
+      const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+      if (!m) return false; // 非 IP（通常是公网域名）→ 视为外部
+      const a = +m[1], b = +m[2];
+      if (a === 10 || a === 127) return true;
+      if (a === 169 && b === 254) return true;          // 链路本地
+      if (a === 172 && b >= 16 && b <= 31) return true;  // 私有
+      if (a === 192 && b === 168) return true;           // 私有
+      return false;
+    }
+    const LAN_MODE = isPrivateHostname(location.hostname);
+    let EDITABLE = LAN_MODE; // 可编辑状态：局域网自动为 true；外部网络需输入编辑密码解锁
+
+    function applyNetworkMode() {
+      // 依据 EDITABLE 决定编辑入口显隐：可编辑显示全部入口；只读则隐藏并显示解锁提示条
+      const editBtns = ['manage-entry-btn', 'eat-fab', 'study-fab', 'play-fab'];
+      const ub = document.getElementById('unlock-bar');
+      if (EDITABLE) {
+        editBtns.forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+        if (ub) ub.style.display = 'none';
+      } else {
+        editBtns.forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        if (ub) ub.style.display = '';
+      }
+    }
+    // 轻量提示（复用页面已有 #toast 元素）
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      t.classList.add('opacity-100');
+      clearTimeout(t._tm);
+      t._tm = setTimeout(() => { t.classList.add('opacity-0'); t.classList.remove('opacity-100'); }, 1800);
+    }
+    // 投稿按钮守卫：只读时引导解锁，可编辑时打开对应投稿弹窗
+    function onEditClick(mod) {
+      if (!EDITABLE) { openEditModal(); return; }
+      if (mod === 'eat') eatOpenModal();
+      else if (mod === 'study') studyOpenModal();
+      else if (mod === 'play') playOpenModal();
+    }
+    // 解锁编辑弹窗
+    function openEditModal() {
+      const m = document.getElementById('edit-modal');
+      const p = document.getElementById('edit-panel');
+      m.classList.add('opacity-100', 'pointer-events-auto');
+      m.classList.remove('opacity-0', 'pointer-events-none');
+      p.classList.remove('translate-y-full'); p.classList.add('translate-y-0');
+      document.body.style.overflow = 'hidden';
+      const inp = document.getElementById('edit-pass'); if (inp) inp.value = '';
+      setTimeout(() => inp && inp.focus(), 200);
+    }
+    function closeEditModal() {
+      const m = document.getElementById('edit-modal');
+      const p = document.getElementById('edit-panel');
+      m.classList.remove('opacity-100', 'pointer-events-auto');
+      m.classList.add('opacity-0', 'pointer-events-none');
+      p.classList.add('translate-y-full'); p.classList.remove('translate-y-0');
+      document.body.style.overflow = '';
+    }
+    function doEditUnlock() {
+      const pw = document.getElementById('edit-pass').value;
+      const err = document.getElementById('edit-err');
+      err.classList.add('hidden');
+      fetch('/api/edit/unlock', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) })
+        .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+        .then(({ ok, d }) => {
+          if (!ok) { err.textContent = (d && d.error) || '解锁失败'; err.classList.remove('hidden'); return; }
+          EDITABLE = true;
+          closeEditModal();
+          applyNetworkMode();
+          toast('已解锁编辑模式');
+        })
+        .catch(() => { err.textContent = '网络错误，请重试'; err.classList.remove('hidden'); });
+    }
+    // 解锁弹窗内回车提交
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const em = document.getElementById('edit-modal');
+        if (em && !em.classList.contains('opacity-0')) doEditUnlock();
+      }
+    });
+    applyNetworkMode();
+
+    // 启动后向后端确认「可编辑状态」，覆盖外部网络已用编辑密码解锁的情形（解锁后刷新仍保持）
+    fetch('/api/network-mode')
+      .then((r) => r.json().catch(() => ({})))
+      .then((d) => { if (typeof d.editable === 'boolean') { EDITABLE = d.editable; applyNetworkMode(); } })
+      .catch(() => {});
+
+    /* ===================== 实时同步：内容变更自动刷新当前区块 ===================== */
+    function currentBrowseBlock() {
+      for (const n of ['home', 'eat', 'study', 'play']) {
+        const el = document.getElementById('block-' + n);
+        if (el && !el.classList.contains('hidden')) return n;
+      }
+      return null; // 正在后台管理视图
+    }
+    function liveRefresh() {
+      const b = currentBrowseBlock();
+      if (!b) return;
+      if (b === 'home') loadHome();
+      else if (b === 'eat') (window.ensureEatLoaded || function () {})();
+      else if (b === 'study') (window.ensureStudyLoaded || function () {})();
+      else if (b === 'play') (window.ensurePlayLoaded || function () {})();
+    }
+    (function connectLive() {
+      if (!('EventSource' in window)) { setInterval(liveRefresh, 8000); return; } // 不支持 SSE → 兜底轮询
+      try {
+        const es = new EventSource('/api/events'); // 相对路径，任意网络环境通用
+        es.onmessage = () => liveRefresh();
+        es.onerror = () => { /* EventSource 自带断线重连，无需处理 */ };
+      } catch (e) {
+        setInterval(liveRefresh, 8000);
+      }
+    })();
+  </script>
+</body>
+</html>

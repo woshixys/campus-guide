@@ -1,0 +1,15 @@
+{
+  "name": "campus-guide",
+  "version": "1.0.0",
+  "description": "深职大香蜜校区｜创新创意设计艺术学院校园指南 H5",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

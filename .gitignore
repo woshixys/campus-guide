@@ -1,0 +1,15 @@
+# 依赖
+node_modules/
+
+# 本地数据库（含用户数据，不入库；部署后用环境变量 DB_PATH 指向持久盘或云库）
+*.db
+data.db
+
+# 环境变量 / 密钥
+.env
+.env.local
+
+# 临时文件
+edit_jar.txt
+pub_jar.txt
+check.sh
