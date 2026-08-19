@@ -86,6 +86,15 @@ db.exec(`
     name  TEXT NOT NULL UNIQUE,
     sort  INTEGER NOT NULL DEFAULT 0
   );
+
+  -- 专业留言（对应“学什么”每个专业详情底部的留言区）
+  CREATE TABLE IF NOT EXISTS study_comments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    study_id   INTEGER NOT NULL,
+    name       TEXT    NOT NULL DEFAULT '匿名',
+    content    TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+  );
 `);
 
 // 数据迁移：为 study 表补上 category（专业分类）字段，兼容已存在的旧数据库
@@ -166,14 +175,18 @@ function seedIfEmpty() {
     seedFoods.forEach((f) => ins.run(f[0], f[1], f[2], f[3]));
   }
 
-  // 演示用：已发布（approved）的学习内容，覆盖 专业 / 课程 / 资料 / 赛事，并按专业归类
+  // 本院官方专业（学什么板块，8 个，已发布、无图片）
   const studyCount = db.prepare('SELECT COUNT(*) AS c FROM study').get().c;
   if (studyCount === 0) {
     const seedStudy = [
-      ['工艺美术品设计', '本院核心专业，强调手作器物与非遗创新，培养审美与工艺兼备的设计人才。', '造型基础,材料工艺,文创设计', '手作器物,非遗创新', '工艺美术品设计'],
-      ['数字媒体艺术', '聚焦动态视觉与交互，课程横跨二维动效、三维建模与界面设计。', '动态图形,交互设计,三维建模', '视觉动效,UI设计', '视觉传达设计'],
-      ['设计思维笔记 · 资料', '一份可复用的设计方法论笔记：从共情、定义到原型与测试的完整流程。', '设计史,构成基础', '设计方法论,作业干货', '产品设计'],
-      ['全国大学生数字艺术大赛', '赛事资讯：每年一届，面向在校生征集数字艺术与文创作品，建议关注官网投稿节点。', '', '参赛指南,赛事资讯', '工业设计'],
+      ['服装与服饰设计', '培养具备扎实服装专业理论、款式开发与工艺制作能力，把握时尚潮流趋势，可从事服装设计、版型开发、品牌运营的创新型人才。', '服装设计表现技法,服装CAD,立体裁剪,服装材料学,针织设计,配饰设计,服装工艺实训', '服装设计师,制版师,陈列搭配师,服装电商运营,时尚新媒体策划', '专科专业'],
+      ['产品艺术设计', '培养掌握现代产品设计方法，兼具创新思维与人因工程知识，可从事消费产品、文创产品、交互界面设计的复合型设计人才。', '产品手绘,CAID三维设计,产品工学结构,交互设计,人因专题设计,文创产品开发', '产品设计师,交互设计师,文创策划,用户体验设计师,产品企划', '专科专业'],
+      ['工艺美术品设计', '传承传统工艺，结合现代设计手法，从事非遗文创、工艺品研发、饰品设计、手工艺术创作的专业人才。', '陶瓷工艺设计与制作,玻璃工艺设计与制作,金属工艺设计与制作,纤维工艺设计与制作,漆艺设计与应用,工艺品专题设计', '工艺美术设计师,文创产品开发,非遗传承设计,手工艺术创作,工艺品营销管理', '专科专业'],
+      ['视觉传达设计', '培养精通品牌视觉、平面广告、新媒体视觉、展示空间设计，可从事品牌全案视觉设计的人才。', 'VI品牌设计,海报包装,书籍创意设计,界面交互设计,商业广告设计', '品牌设计师,新媒体美工,电商视觉设计师,会展展示设计师,商业插画师', '专科专业'],
+      ['首饰设计与工艺', '培养具有首饰创意设计与珠宝首饰鉴定能力，能够从事珠宝首饰设计、制作工艺、珠宝鉴定相关工作的珠宝首饰高技能复合型人才。', '首饰设计表现技法,首饰3D制图,首饰起板,宝玉石基础,钻石分级,首饰创意专题设计', '首饰设计师,首饰工艺师,珠宝鉴定师,珠宝产品定制师,珠宝门店运营管理', '专科专业'],
+      ['环境艺术设计', '掌握室内空间、景观园林、家具陈设设计，可从事家装、工装、景观项目设计落地的综合型人才。', '室内设计制图,3dsMax空间表现,景观专题设计,施工工艺,家具陈设设计', '室内设计师,景观设计师,软装陈设师,工程绘图员', '专科专业'],
+      ['工业设计', '面向智能硬件、家电装备行业，掌握工业产品结构、形态设计、用户体验研发，培养高端工业设计技术人才。', '工业设计工程基础,三维参数化建模,快速原型制作,产品形态语义,材料与工艺', '工业产品设计师,智能硬件研发,设计管理,用户研究工程师', '本科专业'],
+      ['时尚品设计', '聚焦箱包、首饰、潮流配饰等时尚衍生品设计，贴合大湾区时尚产业，培养时尚产品开发与品牌运营人才。', '时尚配饰设计,箱包结构设计,潮流趋势分析,时尚品牌策划', '时尚配饰设计师,箱包产品开发,轻奢品牌设计,时尚买手', '本科专业'],
     ];
     const insS = db.prepare(
       "INSERT INTO study (title, intro, courses, directions, category, status) VALUES (?, ?, ?, ?, ?, 'approved')"
@@ -197,19 +210,12 @@ function seedIfEmpty() {
     seedClubs.forEach((c) => insC.run(c[0], c[1], c[2], c[3], c[4], c[5]));
   }
 
-  // 专业板块种子（前台“学什么”标签栏，由后台管理）
+  // 专业板块种子（前台“学什么”标签栏：专科 / 本科 两个层次）
   const scCount = db.prepare('SELECT COUNT(*) AS c FROM study_categories').get().c;
   if (scCount === 0) {
     const seedCats = [
-      ['服装设计', '服装结构设计、立体裁剪与成衣工艺，连接创意与穿戴。', 0],
-      ['产品设计', '从用户研究到产品落地，涵盖家居、文具与智能硬件。', 1],
-      ['工艺美术品设计', '手作器物与非遗创新，本院核心专业。', 2],
-      ['视觉传达设计', '品牌视觉、海报与动态图形，信息的高效表达。', 3],
-      ['工业设计', '产品形态、结构与 CMF，平衡功能与美学。', 4],
-      ['时尚品设计', '配饰、箱包与潮流单品的设计与开发。', 5],
-      ['环境艺术设计', '空间、展陈与景观，塑造人与环境的关系。', 6],
-      ['专业八（占位）', '', 7],
-      ['专业九（占位）', '', 8],
+      ['专科专业', '专科层次招生专业', 0],
+      ['本科专业', '职业本科层次招生专业', 1],
     ];
     const insCat = db.prepare('INSERT INTO study_categories (name, intro, sort) VALUES (?, ?, ?)');
     seedCats.forEach((c) => insCat.run(c[0], c[1], c[2]));
@@ -398,6 +404,21 @@ function rejectStudy(id) {
   db.prepare('DELETE FROM study WHERE id = ?').run(id);
 }
 
+/* ============================ 专业留言（study_comments） ============================ */
+
+function getStudyComments(studyId) {
+  return db
+    .prepare('SELECT id, name, content, created_at FROM study_comments WHERE study_id = ? ORDER BY id ASC')
+    .all(studyId);
+}
+
+function addStudyComment({ study_id, name = '匿名', content }) {
+  const info = db
+    .prepare('INSERT INTO study_comments (study_id, name, content) VALUES (?, ?, ?)')
+    .run(Number(study_id), String(name || '匿名').trim().slice(0, 20), String(content).trim());
+  return Number(info.lastInsertRowid);
+}
+
 /* ============================ 社团 / 工作室（玩什么） ============================ */
 
 function getApprovedClubs() {
@@ -567,6 +588,9 @@ module.exports = {
   deleteStudy,
   approveStudy,
   rejectStudy,
+  // 专业留言
+  getStudyComments,
+  addStudyComment,
   // 社团 / 工作室
   getApprovedClubs,
   getAllClubs,
