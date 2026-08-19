@@ -294,6 +294,23 @@ app.post('/api/study', requireEdit, (req, res) => {
   res.status(201).json({ id, status: 'pending' });
 });
 
+// 专业留言：任何人可读取 / 发布（无需编辑密码），发布后自动广播 SSE 实时刷新
+app.get('/api/study/:id/comments', (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: '无效的专业' });
+  const rows = db.getStudyComments(id).map((r) => ({ id: r.id, name: r.name, content: r.content, time: r.created_at }));
+  res.json({ items: rows });
+});
+
+app.post('/api/study/:id/comments', (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ error: '无效的专业' });
+  const { name, content } = req.body || {};
+  if (!content || !String(content).trim()) return res.status(400).json({ error: '留言内容不能为空' });
+  const cid = db.addStudyComment({ study_id: id, name: name || '匿名', content: String(content).trim() });
+  res.status(201).json({ id: cid });
+});
+
 /* ------------------------------ 社团 / 工作室（玩什么）接口 ------------------------------ */
 
 app.get('/api/clubs', (req, res) => res.json({ items: db.getApprovedClubs() }));
