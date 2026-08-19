@@ -216,15 +216,8 @@
           <div class="-mx-5 px-5 mb-4">
             <div id="study-tabs" class="tabs-x flex gap-2 overflow-x-auto no-scrollbar pb-1 snap-x">
               <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-brand text-brand bg-brand-light shrink-0">全部</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">服装设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">产品设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">工艺美术品设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">视觉传达设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">工业设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">时尚品设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">环境艺术设计</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">专业八（占位）</button>
-              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">专业九（占位）</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">专科专业</button>
+              <button class="tab-pill whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border border-orange-200 text-gray-500 shrink-0">本科专业</button>
             </div>
           </div>
 
@@ -254,9 +247,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">归属专业</label>
             <select id="study-f-category" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
               <option value="">请选择归属专业</option>
-              <option>服装设计</option><option>产品设计</option><option>工艺美术品设计</option>
-              <option>视觉传达设计</option><option>工业设计</option><option>时尚品设计</option>
-              <option>环境艺术设计</option><option>专业八（占位）</option><option>专业九（占位）</option>
+              <option>专科专业</option><option>本科专业</option>
             </select>
             <label class="block text-sm font-medium text-gray-700 mb-1">核心课程（逗号分隔，可选）</label>
             <input id="study-f-courses" type="text" placeholder="例如：动态图形,交互设计" class="admin-input w-full mb-4 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
@@ -271,6 +262,41 @@
           </div>
         </div>
         <div id="study-toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900/90 text-white text-sm px-5 py-2.5 rounded-full opacity-0 transition-opacity pointer-events-none"></div>
+
+        <!-- 专业详情弹窗 + 留言区 -->
+        <div id="study-detail" class="fixed inset-0 z-50 opacity-0 pointer-events-none">
+          <div class="absolute inset-0 bg-black/40" onclick="studyDetailClose()"></div>
+          <div class="panel modal-scroll absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 max-h-[92vh] overflow-y-auto no-scrollbar translate-y-full">
+            <div class="flex items-center justify-between mb-3">
+              <span id="sd-level" class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">专业</span>
+              <button onclick="studyDetailClose()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-sm">✕</button>
+            </div>
+            <h2 id="sd-title" class="text-xl font-extrabold text-gray-900"></h2>
+            <div class="mt-4 space-y-4">
+              <div>
+                <h4 class="text-sm font-bold text-brand mb-1">培养目标</h4>
+                <p id="sd-intro" class="text-sm text-gray-600 leading-7"></p>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-brand mb-1">主干课程</h4>
+                <ul id="sd-courses" class="text-sm text-gray-600 leading-7 list-disc pl-5 space-y-1"></ul>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-brand mb-1">就业方向</h4>
+                <ul id="sd-dirs" class="text-sm text-gray-600 leading-7 list-disc pl-5 space-y-1"></ul>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-orange-50">
+              <h4 class="text-sm font-bold text-brand mb-2">💬 留言区（<span id="sd-comment-count">0</span>）</h4>
+              <div id="sd-comment-list" class="space-y-3 mb-3"></div>
+              <div class="flex gap-2">
+                <input id="sd-comment-name" type="text" maxlength="20" placeholder="昵称（可选）" class="admin-input w-1/3 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-xs outline-none focus:border-brand" />
+                <input id="sd-comment-content" type="text" placeholder="说点什么…" onkeydown="if(event.key==='Enter')studyPostComment()" class="admin-input flex-1 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+              </div>
+              <button onclick="studyPostComment()" class="w-full mt-2.5 bg-brand text-white rounded-2xl py-3 font-bold text-sm active:scale-[0.98] transition">发布留言</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ============================================================= -->
@@ -717,7 +743,7 @@
       const tabsEl = document.getElementById('study-tabs');
       const listEl = document.getElementById('study-list');
       const emptyEl = document.getElementById('study-empty');
-      const FALLBACK = ['服装设计', '产品设计', '工艺美术品设计', '视觉传达设计', '工业设计', '时尚品设计', '环境艺术设计', '专业八（占位）', '专业九（占位）'];
+      const FALLBACK = ['专科专业', '本科专业'];
       let items = [];
       let cats = FALLBACK.slice();
       let curCat = '全部';
@@ -756,17 +782,16 @@
         const imgs = parseImgs(it.images);
         const img = imgs.length
           ? `<img src="${imgs[0]}" class="w-full h-full object-cover" />`
-          : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-4xl">📚</div>`;
-        const courses = splitList(it.courses).map(tagPill).join('');
-        const dirs = splitList(it.directions).map(tagOutline).join('');
-        return `<article class="study-card transition-transform bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">
+          : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-4xl">🎓</div>`;
+        return `<article onclick="openStudyDetail(${it.id})" class="study-card transition-transform active:scale-[0.98] cursor-pointer bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">
           <div class="h-40 relative overflow-hidden">${img}</div>
           <div class="p-4">
-            <div class="mb-1.5"><span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">${esc(it.category || '')}</span></div>
+            <div class="mb-1.5 flex items-center justify-between">
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-brand text-white">${esc(it.category || '专业')}</span>
+              <span class="text-[11px] text-brand font-medium">详情 ›</span>
+            </div>
             <h3 class="text-base font-bold text-gray-900 leading-snug">${esc(it.title)}</h3>
             <p class="mt-1.5 text-xs text-gray-500 leading-6">${esc(it.intro)}</p>
-            ${courses ? `<div class="mt-2.5 flex flex-wrap gap-1.5"><span class="text-[11px] text-gray-400 mr-1 self-center">核心课程</span>${courses}</div>` : ''}
-            ${dirs ? `<div class="mt-2 flex flex-wrap gap-1.5"><span class="text-[11px] text-gray-400 mr-1 self-center">学习方向</span>${dirs}</div>` : ''}
           </div>
         </article>`;
       }
@@ -793,6 +818,66 @@
       }
       window.studyOpenModal = open;
       window.studyCloseModal = close;
+
+      /* —— 专业详情弹窗 + 留言区 —— */
+      let curDetailId = null;
+      window.openStudyDetail = function (id) {
+        const it = items.find((x) => x.id === id);
+        if (!it) return;
+        curDetailId = id;
+        document.getElementById('sd-level').textContent = it.category || '专业';
+        document.getElementById('sd-title').textContent = it.title;
+        document.getElementById('sd-intro').textContent = it.intro || '';
+        document.getElementById('sd-courses').innerHTML = splitList(it.courses).map((c) => `<li>${esc(c)}</li>`).join('');
+        document.getElementById('sd-dirs').innerHTML = splitList(it.directions).map((c) => `<li>${esc(c)}</li>`).join('');
+        const m = document.getElementById('study-detail');
+        m.classList.add('opacity-100', 'pointer-events-auto');
+        m.classList.remove('opacity-0', 'pointer-events-none');
+        m.querySelector('.panel').classList.remove('translate-y-full');
+        m.querySelector('.panel').classList.add('translate-y-0');
+        document.body.style.overflow = 'hidden';
+        loadComments(id);
+      };
+      window.studyDetailClose = function () {
+        const m = document.getElementById('study-detail');
+        m.classList.remove('opacity-100', 'pointer-events-auto');
+        m.classList.add('opacity-0', 'pointer-events-none');
+        m.querySelector('.panel').classList.add('translate-y-full');
+        m.querySelector('.panel').classList.remove('translate-y-0');
+        document.body.style.overflow = '';
+      };
+      function loadComments(id) {
+        fetch('/api/study/' + id + '/comments').then((r) => r.json()).then((d) => {
+          const list = d.items || [];
+          document.getElementById('sd-comment-count').textContent = list.length;
+          document.getElementById('sd-comment-list').innerHTML = list.length
+            ? list.map((c) => `<div class="bg-gray-50 rounded-2xl px-3 py-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-brand">${esc(c.name || '匿名')}</span>
+                  <span class="text-[10px] text-gray-300">${esc(c.time || '')}</span>
+                </div>
+                <p class="text-sm text-gray-600 mt-0.5 leading-6 whitespace-pre-wrap">${esc(c.content)}</p>
+              </div>`).join('')
+            : '<p class="text-xs text-gray-300 py-2">还没有留言，来抢沙发吧～</p>';
+        }).catch(() => {});
+      }
+      window.studyPostComment = function () {
+        if (!curDetailId) return;
+        const nameEl = document.getElementById('sd-comment-name');
+        const contentEl = document.getElementById('sd-comment-content');
+        const name = nameEl.value.trim();
+        const content = contentEl.value.trim();
+        if (!content) { toast('留言内容不能为空'); return; }
+        fetch('/api/study/' + curDetailId + '/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: name, content: content }),
+        }).then((r) => r.json()).then(() => {
+          contentEl.value = '';
+          loadComments(curDetailId);
+        }).catch(() => toast('留言发送失败，请重试'));
+      };
 
       let studyImgs = [];
       document.getElementById('study-f-images').addEventListener('change', e => {
