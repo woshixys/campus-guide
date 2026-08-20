@@ -1889,7 +1889,8 @@
           EDITABLE = true;
           closeEditModal();
           applyNetworkMode();
-          toast('已解锁编辑模式');
+          refreshOpenComments(); // 解锁后立即重渲染可见留言区，让「删除」按钮马上出现
+          toast('已解锁编辑模式，留言可删除');
         })
         .catch(() => { err.textContent = '网络错误，请重试'; err.classList.remove('hidden'); });
     }
