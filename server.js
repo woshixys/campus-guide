@@ -140,6 +140,9 @@ app.use((req, res, next) => {
 // 静态资源：前端 H5（唯一入口 index.html，内含前台浏览与内嵌后台管理）
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 美食配图目录（food_imgs）：种子数据以文件路径引用，需对外提供静态访问
+app.use('/food_imgs', express.static(path.join(__dirname, 'food_imgs')));
+
 /* ------------------------------ 鉴权工具 ------------------------------ */
 
 function parseCookies(req) {
@@ -489,7 +492,7 @@ app.get('/api/admin/foods', (req, res) => res.json({ items: db.getAllFoods() }))
 
 // 手动新增（直接发布）
 app.post('/api/admin/foods', (req, res) => {
-  const { shop_name, location, intro, tags, images } = req.body || {};
+  const { shop_name, location, intro, tags, images, cuisine, avg_cost, address, recommend, review } = req.body || {};
   if (!shop_name || !String(shop_name).trim()) return res.status(400).json({ error: '店铺名称必填' });
   const id = db.addFood({
     shop_name: String(shop_name).trim(),
@@ -497,6 +500,11 @@ app.post('/api/admin/foods', (req, res) => {
     intro: String(intro || '').trim(),
     tags: Array.isArray(tags) ? tags.join(',') : String(tags || '').trim(),
     images: Array.isArray(images) ? images : [],
+    cuisine: String(cuisine || '').trim(),
+    avg_cost: String(avg_cost || '').trim(),
+    address: String(address || '').trim(),
+    recommend: String(recommend || '').trim(),
+    review: String(review || '').trim(),
     status: (req.body && req.body.status === 'pending') ? 'pending' : 'approved',
   });
   res.status(201).json({ id });
