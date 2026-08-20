@@ -336,16 +336,23 @@ app.get('/api/comments', (req, res) => {
   const type = String(req.query.type || 'home');
   const id = Number(req.query.id || 0);
   if (!['home', 'study', 'food'].includes(type)) return res.status(400).json({ error: '无效的留言对象' });
-  const rows = db.getComments(type, id).map((r) => ({ id: r.id, name: r.name, content: r.content, time: r.created_at }));
+  const rows = db.getComments(type, id).map((r) => ({ id: r.id, name: r.name, content: r.content, time: r.created_at, parent_id: r.parent_id || 0 }));
   res.json({ items: rows });
 });
 
-// 公开发布：无局域网 / 编辑密码限制
+// 公开发布：无局域网 / 编辑密码限制；支持 parent_id 进行楼中楼回复
 app.post('/api/comments', (req, res) => {
-  const { type, id, name, content } = req.body || {};
+  const { type, id, name, content, parent_id } = req.body || {};
   if (!['home', 'study', 'food'].includes(type)) return res.status(400).json({ error: '无效的留言对象' });
   if (!content || !String(content).trim()) return res.status(400).json({ error: '留言内容不能为空' });
   if (String(content).length > 500) return res.status(400).json({ error: '留言内容过长（最多 500 字）' });
+  let pid = Number(parent_id) || 0;
+  if (pid) {
+    const parent = db.getComment(pid);
+    if (!parent || parent.entity_type !== type || Number(parent.entity_id) !== Number(id)) {
+      return res.status(400).json({ error: '回复的留言不存在' });
+    }
+  }
   const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
   if (!commentRateOk(ip)) return res.status(429).json({ error: '留言太频繁，请稍候再试' });
   const cid = db.addComment({
@@ -353,6 +360,7 @@ app.post('/api/comments', (req, res) => {
     entity_id: Number(id) || 0,
     name: name || '匿名',
     content: String(content).trim(),
+    parent_id: pid,
   });
   res.status(201).json({ id: cid });
 });
