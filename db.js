@@ -110,6 +110,30 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_comments_entity ON comments(entity_type, entity_id, id);
+
+  -- 大家的生活是什么样的（照片动态）：任意网络用户上传，持久化保存
+  CREATE TABLE IF NOT EXISTS life_posts (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    nickname     TEXT    NOT NULL DEFAULT '匿名',
+    text         TEXT    NOT NULL DEFAULT '',
+    image_data   TEXT    NOT NULL DEFAULT '',   -- 图片 base64（不含 data: 前缀，由接口拼回）
+    image_type   TEXT    NOT NULL DEFAULT 'image/jpeg',
+    author_token TEXT    NOT NULL DEFAULT '',     -- 发布者删除凭证：仅本人（持有者）与管理员可删
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+
+  -- 生活动态下的评论（支持楼中楼回复）
+  CREATE TABLE IF NOT EXISTS life_comments (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id      INTEGER NOT NULL,
+    nickname     TEXT    NOT NULL DEFAULT '匿名',
+    text         TEXT    NOT NULL DEFAULT '',
+    parent_id    INTEGER NOT NULL DEFAULT 0,      -- 0=一级评论；>0=回复某条一级评论
+    author_token TEXT    NOT NULL DEFAULT '',      -- 发布者删除凭证
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_life_comments_post ON life_comments(post_id, id);
 `);
 
 // 数据迁移：为 study 表补上 category（专业分类）字段，兼容已存在的旧数据库
@@ -665,6 +689,84 @@ function deleteClubCategory(id) {
   return true;
 }
 
+/* ============================ 大家的生活是什么样的（照片动态） ============================ */
+
+// 读取全部动态（最新在前），并附带各自评论（楼中楼已展平为带 parent_id 的列表）
+function getLifePosts() {
+  const posts = db
+    .prepare('SELECT id, nickname, text, image_data, image_type, created_at FROM life_posts ORDER BY id DESC')
+    .all();
+  const comments = db
+    .prepare('SELECT id, post_id, nickname, text, parent_id, created_at FROM life_comments ORDER BY id ASC')
+    .all();
+  const byPost = {};
+  comments.forEach((c) => { (byPost[c.post_id] = byPost[c.post_id] || []).push(c); });
+  return posts.map((p) => ({ ...p, comments: byPost[p.id] || [] }));
+}
+
+// 发布动态：返回 id 与 author_token（仅创建时返回一次，GET 列表不泄露）
+function addLifePost({ nickname = '匿名', text = '', image_data = '', image_type = 'image/jpeg' }) {
+  const author_token = crypto.randomBytes(8).toString('hex');
+  const info = db
+    .prepare('INSERT INTO life_posts (nickname, text, image_data, image_type, author_token) VALUES (?, ?, ?, ?, ?)')
+    .run(
+      String(nickname || '匿名').trim().slice(0, 20),
+      String(text || '').trim(),
+      String(image_data || ''),
+      String(image_type || 'image/jpeg'),
+      author_token
+    );
+  return { id: Number(info.lastInsertRowid), author_token };
+}
+
+function getLifePost(id) {
+  return db.prepare('SELECT * FROM life_posts WHERE id = ?').get(Number(id));
+}
+
+function getLifePostAuthorToken(id) {
+  const row = db.prepare('SELECT author_token FROM life_posts WHERE id = ?').get(Number(id));
+  return row ? row.author_token : '';
+}
+
+function deleteLifePost(id) {
+  const p = getLifePost(id);
+  if (!p) return false;
+  // 删除动态时一并删除其下所有评论
+  db.prepare('DELETE FROM life_comments WHERE post_id = ?').run(Number(id));
+  db.prepare('DELETE FROM life_posts WHERE id = ?').run(Number(id));
+  return true;
+}
+
+// 发布评论：返回 id 与 author_token
+function addLifeComment({ post_id, nickname = '匿名', text = '', parent_id = 0 }) {
+  const author_token = crypto.randomBytes(8).toString('hex');
+  const info = db
+    .prepare('INSERT INTO life_comments (post_id, nickname, text, parent_id, author_token) VALUES (?, ?, ?, ?, ?)')
+    .run(Number(post_id), String(nickname || '匿名').trim().slice(0, 20), String(text || '').trim(), Number(parent_id) || 0, author_token);
+  return { id: Number(info.lastInsertRowid), author_token };
+}
+
+function getLifeComment(id) {
+  return db.prepare('SELECT * FROM life_comments WHERE id = ?').get(Number(id));
+}
+
+function getLifeCommentAuthorToken(id) {
+  const row = db.prepare('SELECT author_token FROM life_comments WHERE id = ?').get(Number(id));
+  return row ? row.author_token : '';
+}
+
+function deleteLifeComment(id) {
+  const c = getLifeComment(id);
+  if (!c) return false;
+  // 删除一级评论时连带删除其下所有回复；删除回复则只删该条
+  if (!c.parent_id) {
+    db.prepare('DELETE FROM life_comments WHERE id = ? OR parent_id = ?').run(Number(id), Number(id));
+  } else {
+    db.prepare('DELETE FROM life_comments WHERE id = ?').run(Number(id));
+  }
+  return true;
+}
+
 module.exports = {
   db,
   // 轮播 / 简介
@@ -728,4 +830,14 @@ module.exports = {
   addClubCategory,
   updateClubCategory,
   deleteClubCategory,
+  // 大家的生活是什么样的（照片动态）
+  getLifePosts,
+  addLifePost,
+  getLifePost,
+  getLifePostAuthorToken,
+  deleteLifePost,
+  addLifeComment,
+  getLifeComment,
+  getLifeCommentAuthorToken,
+  deleteLifeComment,
 };
