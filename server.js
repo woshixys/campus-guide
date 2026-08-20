@@ -630,6 +630,102 @@ app.post('/api/admin/clubs/:id/reject', (req, res) => {
   res.json({ ok: true });
 });
 
+/* =========================================================================
+ *  大家的生活是什么样的（照片动态 + 评论）
+ *  设计要点：
+ *    1. 发布完全公开——任何网络（同一 WiFi / 手机流量 / 公网域名）都能带昵称 + 图片 + 文字发布，
+ *       不受「局域网 / 编辑密码」门禁限制（与通用留言板一致）；
+ *    2. GET /api/life/posts 公开读取，动态按 id 倒序（最新在前），评论随动态一并返回；
+ *    3. 删除权限：
+ *       - 动态：仅动态作者（凭 author_token）或局域网 / 已解锁编辑密码的管理员可删；
+ *       - 评论：评论作者（凭 author_token）、该动态作者（凭动态 author_token）或管理员可删；
+ *    4. 任意成功的写操作都会触发全局 SSE 广播，所有打开页面的设备实时刷新。
+ * ========================================================================= */
+
+// 读取全部动态（含评论），图片以 data URI 形式内联返回，前端直接 <img> 使用
+app.get('/api/life/posts', (req, res) => {
+  const posts = db.getLifePosts().map((p) => ({
+    id: p.id,
+    nickname: p.nickname,
+    text: p.text,
+    image: p.image_data ? `data:${p.image_type || 'image/jpeg'};base64,${p.image_data}` : '',
+    time: p.created_at,
+    comments: (p.comments || []).map((c) => ({
+      id: c.id,
+      post_id: c.post_id,
+      nickname: c.nickname,
+      text: c.text,
+      parent_id: c.parent_id || 0,
+      time: c.created_at,
+    })),
+  }));
+  res.json({ items: posts });
+});
+
+// 公开发布动态：无需编辑密码；必传一张照片（base64）
+app.post('/api/life/posts', (req, res) => {
+  const { nickname, text, image_data, image_type } = req.body || {};
+  if (!image_data || !String(image_data).trim()) return res.status(400).json({ error: '请上传一张照片' });
+  // 体积保护：base64 不超过约 12MB（约 9MB 原图）
+  if (String(image_data).length > 12 * 1024 * 1024) return res.status(413).json({ error: '图片太大，请压缩后再上传' });
+  const { id, author_token } = db.addLifePost({
+    nickname: nickname || '匿名',
+    text: text || '',
+    image_data: String(image_data),
+    image_type: image_type || 'image/jpeg',
+  });
+  res.status(201).json({ id, author_token });
+});
+
+// 公开发布评论：支持 parent_id 进行楼中楼回复；带轻量防刷
+app.post('/api/life/comments', (req, res) => {
+  const { post_id, nickname, text, parent_id } = req.body || {};
+  const pid = Number(post_id);
+  if (!pid) return res.status(400).json({ error: '无效的动态' });
+  if (!text || !String(text).trim()) return res.status(400).json({ error: '评论内容不能为空' });
+  if (String(text).length > 300) return res.status(400).json({ error: '评论内容过长（最多 300 字）' });
+  const post = db.getLifePost(pid);
+  if (!post) return res.status(404).json({ error: '动态不存在' });
+  let par = Number(parent_id) || 0;
+  if (par) {
+    const parent = db.getLifeComment(par);
+    if (!parent || Number(parent.post_id) !== pid) return res.status(400).json({ error: '回复的评论不存在' });
+  }
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  if (!commentRateOk(ip)) return res.status(429).json({ error: '评论太频繁，请稍候再试' });
+  const { id, author_token } = db.addLifeComment({ post_id: pid, nickname: nickname || '匿名', text: String(text).trim(), parent_id: par });
+  res.status(201).json({ id, author_token });
+});
+
+// 删除动态：动态作者（凭 token）或管理员（局域网 / 已解锁）可删
+app.delete('/api/life/posts/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const admin = isPrivateHost(req.headers.host || '') || hasEditToken(req);
+  if (!admin) {
+    const p = db.getLifePost(id);
+    if (!p) return res.status(404).json({ error: '动态不存在' });
+    const token = (req.query && req.query.token) || (req.body && req.body.token) || '';
+    if (!token || token !== p.author_token) return res.status(403).json({ error: '仅动态作者或管理员可删除' });
+  }
+  db.deleteLifePost(id);
+  res.json({ ok: true });
+});
+
+// 删除评论：评论作者 / 该动态作者（凭动态 token） / 管理员 可删
+app.delete('/api/life/comments/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const admin = isPrivateHost(req.headers.host || '') || hasEditToken(req);
+  if (!admin) {
+    const c = db.getLifeComment(id);
+    if (!c) return res.status(404).json({ error: '评论不存在' });
+    const token = (req.query && req.query.token) || (req.body && req.body.token) || '';
+    const ok = token && (token === c.author_token || token === db.getLifePostAuthorToken(c.post_id));
+    if (!ok) return res.status(403).json({ error: '仅评论作者、动态作者或管理员可删除' });
+  }
+  db.deleteLifeComment(id);
+  res.json({ ok: true });
+});
+
 // 启动：监听 HOST(默认 0.0.0.0)，允许局域网内其他设备（手机）通过电脑 IP 访问
 app.listen(PORT, HOST, () => {
   console.log(`✅ 校园指南 H5 已启动（监听 0.0.0.0，允许手机/局域网访问）： http://localhost:${PORT}`);
