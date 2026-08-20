@@ -324,9 +324,31 @@
           </div>
           <div id="fd-images" class="-mx-5 mb-3 flex gap-2 overflow-x-auto no-scrollbar px-5 snap-x"></div>
           <div class="mt-2 space-y-3">
+            <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <h4 class="text-xs font-bold text-brand mb-0.5">菜系</h4>
+                <p id="fd-cuisine" class="text-sm text-gray-600 leading-6"></p>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-brand mb-0.5">人均</h4>
+                <p id="fd-avg_cost" class="text-sm text-gray-600 leading-6"></p>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-brand mb-0.5">地址</h4>
+              <p id="fd-address" class="text-sm text-gray-600 leading-6"></p>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-brand mb-0.5">推荐菜品</h4>
+              <p id="fd-recommend" class="text-sm text-gray-600 leading-6"></p>
+            </div>
             <div>
               <h4 class="text-sm font-bold text-brand mb-1">店铺简介</h4>
               <p id="fd-intro" class="text-sm text-gray-600 leading-7"></p>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-brand mb-0.5">点评</h4>
+              <p id="fd-review" class="text-sm text-gray-600 leading-7"></p>
             </div>
             <div id="fd-tags" class="flex flex-wrap gap-1.5"></div>
           </div>
@@ -678,6 +700,11 @@
         window.ccCtx = window.ccCtx || {}; window.ccCtx.fd = { type: 'food', id };
         document.getElementById('fd-title').textContent = it.shop_name || '';
         document.getElementById('fd-intro').textContent = it.intro || '暂无简介';
+        document.getElementById('fd-cuisine').textContent = it.cuisine || '';
+        document.getElementById('fd-avg_cost').textContent = it.avg_cost || '';
+        document.getElementById('fd-address').textContent = it.address || '';
+        document.getElementById('fd-recommend').textContent = it.recommend || '';
+        document.getElementById('fd-review').textContent = it.review || '暂无点评';
         const imgs = parseImgs(it.images);
         document.getElementById('fd-images').innerHTML = imgs.length
           ? imgs.map((src) => `<div class="shrink-0 w-60 h-40 rounded-2xl overflow-hidden snap-start"><img src="${src}" class="w-full h-full object-cover" /></div>`).join('')
@@ -720,6 +747,7 @@
               <span class="flex-none text-[11px] px-2 py-0.5 rounded-full border border-brand text-brand bg-brand-light whitespace-nowrap">${loc}</span>
             </div>
             <p class="mt-1.5 text-xs text-gray-500 leading-6">${esc(it.intro)}</p>
+            ${(it.cuisine || it.avg_cost) ? `<p class="mt-1.5 text-[11px] text-brand leading-5">${it.cuisine ? esc(it.cuisine) : ''}${it.cuisine && it.avg_cost ? ' · ' : ''}${it.avg_cost ? '人均' + esc(it.avg_cost) : ''}</p>` : ''}
             ${tags ? `<div class="mt-2.5 flex flex-wrap gap-1.5">${tags}</div>` : ''}
           </div>
         </article>`;
@@ -1549,6 +1577,16 @@
         <textarea id="m-intro" rows="2" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.intro) : ''}</textarea>
         <label class="block text-sm font-medium text-gray-700 mb-1">特色标签（逗号分隔）</label>
         <input id="m-tags" type="text" value="${x ? esc(x.tags) : ''}" placeholder="如：性价比高,出餐快" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">菜系</label>
+        <input id="m-cuisine" type="text" value="${x ? esc(x.cuisine) : ''}" placeholder="如：粤菜 / 湘菜" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">人均</label>
+        <input id="m-avg_cost" type="text" value="${x ? esc(x.avg_cost) : ''}" placeholder="如：人均 ¥30" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">地址</label>
+        <input id="m-address" type="text" value="${x ? esc(x.address) : ''}" placeholder="如：香蜜校区食堂 2 楼" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">推荐菜品</label>
+        <input id="m-recommend" type="text" value="${x ? esc(x.recommend) : ''}" placeholder="逗号分隔，如：白切鸡,烧鹅" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+        <label class="block text-sm font-medium text-gray-700 mb-1">点评</label>
+        <textarea id="m-review" rows="2" class="w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none">${x ? esc(x.review) : ''}</textarea>
         <label class="block text-sm font-medium text-gray-700 mb-1">状态</label>
         <select id="m-status" class="admin-input w-full mb-3 px-4 py-3 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand">
           <option value="approved" ${!x || x.status === 'approved' ? 'selected' : ''}>已发布</option>
@@ -1570,6 +1608,11 @@
           location: document.getElementById('m-location').value,
           intro: document.getElementById('m-intro').value.trim(),
           tags: document.getElementById('m-tags').value.trim(),
+          cuisine: document.getElementById('m-cuisine').value.trim(),
+          avg_cost: document.getElementById('m-avg_cost').value.trim(),
+          address: document.getElementById('m-address').value.trim(),
+          recommend: document.getElementById('m-recommend').value.trim(),
+          review: document.getElementById('m-review').value.trim(),
           status: document.getElementById('m-status').value,
           images: modalImages,
         };
