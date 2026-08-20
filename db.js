@@ -4,6 +4,7 @@
  * 数据库文件：项目根目录下的 data.db（单文件）
  */
 const path = require('path');
+const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
 
 // 数据库文件路径：支持通过环境变量 DB_PATH 覆盖（部署到 Render 等平台持久磁盘时指向挂载目录）
@@ -104,6 +105,7 @@ db.exec(`
     name        TEXT NOT NULL DEFAULT '匿名',
     content     TEXT NOT NULL,
     parent_id   INTEGER NOT NULL DEFAULT 0,   -- 0=一级留言；>0=回复某条一级留言（楼中楼）
+    del_token   TEXT NOT NULL DEFAULT '',      -- 本人删除凭证：发帖时生成，仅发布者/管理员可删
     created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
 
@@ -277,11 +279,14 @@ function migrateFoodFields() {
   });
 }
 
-// 数据迁移：为 comments 表补上 parent_id（回复所属的一级留言），兼容已存在的旧数据库
+// 数据迁移：为 comments 表补上 parent_id（回复所属的一级留言）与 del_token（本人删除凭证），兼容旧库
 function migrateCommentReplies() {
   const cols = db.prepare('PRAGMA table_info(comments)').all().map((c) => c.name);
   if (!cols.includes('parent_id')) {
     db.exec('ALTER TABLE comments ADD COLUMN parent_id INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!cols.includes('del_token')) {
+    db.exec("ALTER TABLE comments ADD COLUMN del_token TEXT NOT NULL DEFAULT ''");
   }
 }
 
@@ -483,10 +488,17 @@ function getComments(entity_type, entity_id) {
 }
 
 function addComment({ entity_type, entity_id = 0, name = '匿名', content, parent_id = 0 }) {
+  const del_token = crypto.randomBytes(8).toString('hex'); // 16 位随机凭证，仅本人（持有者）与管理员可删除
   const info = db
-    .prepare('INSERT INTO comments (entity_type, entity_id, name, content, parent_id) VALUES (?, ?, ?, ?, ?)')
-    .run(String(entity_type), Number(entity_id) || 0, String(name || '匿名').trim().slice(0, 20), String(content).trim(), Number(parent_id) || 0);
+    .prepare('INSERT INTO comments (entity_type, entity_id, name, content, parent_id, del_token) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(String(entity_type), Number(entity_id) || 0, String(name || '匿名').trim().slice(0, 20), String(content).trim(), Number(parent_id) || 0, del_token);
   return Number(info.lastInsertRowid);
+}
+
+// 返回刚插入留言的删除凭证（仅创建时返回一次，GET 列表不泄露）
+function getCommentDelToken(id) {
+  const row = db.prepare('SELECT del_token FROM comments WHERE id=?').get(Number(id));
+  return row ? row.del_token : '';
 }
 
 function getComment(id) {
@@ -692,6 +704,7 @@ module.exports = {
   getComments,
   addComment,
   getComment,
+  getCommentDelToken,
   deleteComment,
   // 社团 / 工作室
   getApprovedClubs,
