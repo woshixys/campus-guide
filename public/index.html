@@ -138,6 +138,21 @@
         <footer class="mt-8 text-center text-[11px] text-gray-300">
           深职大香蜜校区 · 创新创意设计艺术学院
         </footer>
+
+        <!-- 首页通用留言板：任何网络（WiFi / 手机流量）均可留言，实时显示 -->
+        <section class="mt-8 pt-5 border-t border-orange-50">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="inline-block w-1.5 h-5 rounded-full bg-brand"></span>
+            <h2 class="text-base font-bold text-gray-800">💬 留言板</h2>
+          </div>
+          <div id="home-comment-list" class="space-y-3 mb-3"></div>
+          <div class="flex gap-2">
+            <input id="home-comment-name" type="text" maxlength="20" placeholder="昵称（可选）" class="admin-input w-1/3 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-xs outline-none focus:border-brand" />
+            <input id="home-comment-content" type="text" placeholder="说点什么…（最多 500 字）" onkeydown="if(event.key==='Enter')postComment('home')" class="admin-input flex-1 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+          </div>
+          <button onclick="postComment('home')" class="w-full mt-2.5 bg-brand text-white rounded-2xl py-3 font-bold text-sm active:scale-[0.98] transition">发布留言</button>
+          <p class="mt-2 text-center text-[11px] text-gray-300">任何网络均可留言 · 留言发布后所有设备实时刷新</p>
+        </section>
       </section>
 
       <!-- ============================================================= -->
@@ -291,13 +306,41 @@
               <div id="sd-comment-list" class="space-y-3 mb-3"></div>
               <div class="flex gap-2">
                 <input id="sd-comment-name" type="text" maxlength="20" placeholder="昵称（可选）" class="admin-input w-1/3 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-xs outline-none focus:border-brand" />
-                <input id="sd-comment-content" type="text" placeholder="说点什么…" onkeydown="if(event.key==='Enter')studyPostComment()" class="admin-input flex-1 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+                <input id="sd-comment-content" type="text" placeholder="说点什么…" onkeydown="if(event.key==='Enter')postComment('sd')" class="admin-input flex-1 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
               </div>
-              <button onclick="studyPostComment()" class="w-full mt-2.5 bg-brand text-white rounded-2xl py-3 font-bold text-sm active:scale-[0.98] transition">发布留言</button>
+              <button onclick="postComment('sd')" class="w-full mt-2.5 bg-brand text-white rounded-2xl py-3 font-bold text-sm active:scale-[0.98] transition">发布留言</button>
             </div>
           </div>
         </div>
       </section>
+
+      <!-- 美食详情弹窗 + 留言区 -->
+      <div id="food-detail" class="fixed inset-0 z-50 opacity-0 pointer-events-none">
+        <div class="absolute inset-0 bg-black/40" onclick="foodDetailClose()"></div>
+        <div class="panel modal-scroll absolute inset-x-0 bottom-0 max-w-[480px] mx-auto bg-white rounded-t-4xl p-5 max-h-[92vh] overflow-y-auto no-scrollbar translate-y-full">
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="fd-title" class="text-xl font-extrabold text-gray-900 pr-2"></h2>
+            <button onclick="foodDetailClose()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-sm shrink-0">✕</button>
+          </div>
+          <div id="fd-images" class="-mx-5 mb-3 flex gap-2 overflow-x-auto no-scrollbar px-5 snap-x"></div>
+          <div class="mt-2 space-y-3">
+            <div>
+              <h4 class="text-sm font-bold text-brand mb-1">店铺简介</h4>
+              <p id="fd-intro" class="text-sm text-gray-600 leading-7"></p>
+            </div>
+            <div id="fd-tags" class="flex flex-wrap gap-1.5"></div>
+          </div>
+          <div class="mt-6 pt-4 border-t border-orange-50">
+            <h4 class="text-sm font-bold text-brand mb-2">💬 留言区（<span id="fd-comment-count">0</span>）</h4>
+            <div id="fd-comment-list" class="space-y-3 mb-3"></div>
+            <div class="flex gap-2">
+              <input id="fd-comment-name" type="text" maxlength="20" placeholder="昵称（可选）" class="admin-input w-1/3 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-xs outline-none focus:border-brand" />
+              <input id="fd-comment-content" type="text" placeholder="说点什么…（最多 500 字）" onkeydown="if(event.key==='Enter')postComment('fd')" class="admin-input flex-1 px-3 py-2.5 rounded-2xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+            </div>
+            <button onclick="postComment('fd')" class="w-full mt-2.5 bg-brand text-white rounded-2xl py-3 font-bold text-sm active:scale-[0.98] transition">发布留言</button>
+          </div>
+        </div>
+      </div>
 
       <!-- ============================================================= -->
       <!-- 区块④：玩什么（默认隐藏） -->
@@ -605,6 +648,8 @@
           document.title = t;
         })
         .catch(() => {});
+      // 加载首页留言板
+      loadCommentsFor('home', 0, 'home');
     }
     loadHome();
 
@@ -625,6 +670,35 @@
         fetch('/api/foods').then(r => r.json()).then(d => { eatItems = d.items || []; render(); })
           .catch(() => { eatItems = []; render(); });
       }
+
+      /* 美食详情弹窗（点击卡片打开）+ 留言区 */
+      window.openFoodDetail = function (id) {
+        const it = eatItems.find((x) => x.id === id);
+        if (!it) return;
+        window.ccCtx = window.ccCtx || {}; window.ccCtx.fd = { type: 'food', id };
+        document.getElementById('fd-title').textContent = it.shop_name || '';
+        document.getElementById('fd-intro').textContent = it.intro || '暂无简介';
+        const imgs = parseImgs(it.images);
+        document.getElementById('fd-images').innerHTML = imgs.length
+          ? imgs.map((src) => `<div class="shrink-0 w-60 h-40 rounded-2xl overflow-hidden snap-start"><img src="${src}" class="w-full h-full object-cover" /></div>`).join('')
+          : '<div class="ph-grad w-60 h-40 rounded-2xl flex items-center justify-center text-white text-4xl shrink-0">🍜</div>';
+        document.getElementById('fd-tags').innerHTML = splitList(it.tags).map(tagPill).join('');
+        const m = document.getElementById('food-detail');
+        m.classList.add('opacity-100', 'pointer-events-auto');
+        m.classList.remove('opacity-0', 'pointer-events-none');
+        m.querySelector('.panel').classList.remove('translate-y-full');
+        m.querySelector('.panel').classList.add('translate-y-0');
+        document.body.style.overflow = 'hidden';
+        loadCommentsFor('food', id, 'fd');
+      };
+      window.foodDetailClose = function () {
+        const m = document.getElementById('food-detail');
+        m.classList.remove('opacity-100', 'pointer-events-auto');
+        m.classList.add('opacity-0', 'pointer-events-none');
+        m.querySelector('.panel').classList.add('translate-y-full');
+        m.querySelector('.panel').classList.remove('translate-y-0');
+        document.body.style.overflow = '';
+      };
       function render() {
         const list = eatItems.filter(it => eatFilter === '全部' || it.location === eatFilter);
         if (!list.length) { listEl.innerHTML = ''; emptyEl.classList.remove('hidden'); return; }
@@ -638,7 +712,7 @@
           : `<div class="ph-grad w-full h-full flex items-center justify-center text-white text-4xl">🍜</div>`;
         const loc = it.location === '周边' ? '📍 校区周边' : '🏫 香蜜校区食堂';
         const tags = splitList(it.tags).map(tagPill).join('');
-        return `<article class="food-card transition-transform bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">
+        return `<article onclick="openFoodDetail(${it.id})" class="food-card transition-transform bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden cursor-pointer">
           <div class="h-40 relative overflow-hidden">${img}</div>
           <div class="p-4">
             <div class="flex items-start justify-between gap-2">
@@ -825,6 +899,7 @@
         const it = items.find((x) => x.id === id);
         if (!it) return;
         curDetailId = id;
+        window.ccCtx = window.ccCtx || {}; window.ccCtx.sd = { type: 'study', id };
         document.getElementById('sd-level').textContent = it.category || '专业';
         document.getElementById('sd-title').textContent = it.title;
         document.getElementById('sd-intro').textContent = it.intro || '';
@@ -847,37 +922,9 @@
         document.body.style.overflow = '';
       };
       function loadComments(id) {
-        fetch('/api/study/' + id + '/comments').then((r) => r.json()).then((d) => {
-          const list = d.items || [];
-          document.getElementById('sd-comment-count').textContent = list.length;
-          document.getElementById('sd-comment-list').innerHTML = list.length
-            ? list.map((c) => `<div class="bg-gray-50 rounded-2xl px-3 py-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-medium text-brand">${esc(c.name || '匿名')}</span>
-                  <span class="text-[10px] text-gray-300">${esc(c.time || '')}</span>
-                </div>
-                <p class="text-sm text-gray-600 mt-0.5 leading-6 whitespace-pre-wrap">${esc(c.content)}</p>
-              </div>`).join('')
-            : '<p class="text-xs text-gray-300 py-2">还没有留言，来抢沙发吧～</p>';
-        }).catch(() => {});
+        loadCommentsFor('study', id, 'sd');
       }
-      window.studyPostComment = function () {
-        if (!curDetailId) return;
-        const nameEl = document.getElementById('sd-comment-name');
-        const contentEl = document.getElementById('sd-comment-content');
-        const name = nameEl.value.trim();
-        const content = contentEl.value.trim();
-        if (!content) { toast('留言内容不能为空'); return; }
-        fetch('/api/study/' + curDetailId + '/comments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ name: name, content: content }),
-        }).then((r) => r.json()).then(() => {
-          contentEl.value = '';
-          loadComments(curDetailId);
-        }).catch(() => toast('留言发送失败，请重试'));
-      };
+      window.studyPostComment = function () { postComment('sd'); };
 
       let studyImgs = [];
       document.getElementById('study-f-images').addEventListener('change', e => {
@@ -1833,7 +1880,86 @@
       else if (b === 'eat') (window.ensureEatLoaded || function () {})();
       else if (b === 'study') (window.ensureStudyLoaded || function () {})();
       else if (b === 'play') (window.ensurePlayLoaded || function () {})();
+      // 同步刷新当前打开的留言区（首页 / 专业详情 / 美食详情）
+      refreshOpenComments();
     }
+    /* ===================== 通用留言板模块（首页 / 专业 / 美食） ===================== */
+    // 当前各留言区上下文：prefix -> { type, id }
+    window.ccCtx = window.ccCtx || {};
+    window.ccCtx.home = { type: 'home', id: 0 };
+
+    // 渲染单条留言；仅管理员（局域网 / 已解锁编辑）可见「删除」
+    function commentItemHTML(c, prefix) {
+      const canDel = (typeof EDITABLE !== 'undefined' && EDITABLE);
+      const del = canDel ? ` <button onclick="deleteComment(${c.id},'${prefix}')" class="text-[10px] text-red-400 ml-1 shrink-0">删除</button>` : '';
+      return `<div class="bg-gray-50 rounded-2xl px-3 py-2">
+        <div class="flex items-start justify-between gap-2">
+          <span class="text-xs font-medium text-brand shrink-0">${esc(c.name || '匿名')}</span>
+          <span class="text-[10px] text-gray-300 whitespace-nowrap">${esc(c.time || '')}${del}</span>
+        </div>
+        <p class="text-sm text-gray-600 mt-0.5 leading-6 whitespace-pre-wrap break-words">${esc(c.content)}</p>
+      </div>`;
+    }
+
+    function loadCommentsFor(type, id, prefix) {
+      const ctx = window.ccCtx || {};
+      ctx[prefix] = { type, id };
+      window.ccCtx = ctx;
+      fetch('/api/comments?type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id))
+        .then((r) => r.json())
+        .then((d) => {
+          const list = d.items || [];
+          const countEl = document.getElementById(prefix + '-comment-count');
+          const listEl = document.getElementById(prefix + '-comment-list');
+          if (countEl) countEl.textContent = list.length;
+          if (listEl) listEl.innerHTML = list.length
+            ? list.map((c) => commentItemHTML(c, prefix)).join('')
+            : '<p class="text-xs text-gray-300 py-2">还没有留言，来抢沙发吧～</p>';
+        })
+        .catch(() => {});
+    }
+
+    function postComment(prefix) {
+      const ctx = window.ccCtx && window.ccCtx[prefix];
+      if (!ctx) return;
+      const nameEl = document.getElementById(prefix + '-comment-name');
+      const contentEl = document.getElementById(prefix + '-comment-content');
+      const name = nameEl ? nameEl.value.trim() : '';
+      const content = contentEl ? contentEl.value.trim() : '';
+      if (!content) { toast('留言内容不能为空'); return; }
+      fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type: ctx.type, id: ctx.id, name, content }),
+      })
+        .then((r) => {
+          if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); });
+          if (contentEl) contentEl.value = '';
+          loadCommentsFor(ctx.type, ctx.id, prefix);
+        })
+        .catch((e) => toast(e.message || '留言发送失败，请重试'));
+    }
+
+    function deleteComment(cid, prefix) {
+      if (!confirm('确定删除这条留言？')) return;
+      const ctx = window.ccCtx && window.ccCtx[prefix];
+      fetch('/api/comments/' + cid, { method: 'DELETE', credentials: 'include' })
+        .then((r) => { if (!r.ok) throw new Error(); if (ctx) loadCommentsFor(ctx.type, ctx.id, prefix); })
+        .catch(() => toast('删除失败，请确认你是否有权限'));
+    }
+
+    // SSE 触发时，刷新当前可见的留言区（首页 / 专业详情 / 美食详情）
+    function refreshOpenComments() {
+      const ctx = window.ccCtx || {};
+      const homeEl = document.getElementById('block-home');
+      if (homeEl && !homeEl.classList.contains('hidden') && ctx.home) loadCommentsFor('home', 0, 'home');
+      const sd = document.getElementById('study-detail');
+      if (sd && sd.classList.contains('opacity-100') && ctx.sd) loadCommentsFor('study', ctx.sd.id, 'sd');
+      const fd = document.getElementById('food-detail');
+      if (fd && fd.classList.contains('opacity-100') && ctx.fd) loadCommentsFor('food', ctx.fd.id, 'fd');
+    }
+
     (function connectLive() {
       if (!('EventSource' in window)) { setInterval(liveRefresh, 8000); return; } // 不支持 SSE → 兜底轮询
       try {
