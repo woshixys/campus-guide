@@ -311,6 +311,58 @@ app.post('/api/study/:id/comments', (req, res) => {
   res.status(201).json({ id: cid });
 });
 
+/* ------------------------------ 通用留言板（首页 / 专业 / 美食，任意网络可发） ------------------------------
+ * 设计要点：
+ *   1. POST /api/comments 完全公开——任何网络（同一 WiFi / 手机流量 / 公网域名）都能带昵称发布，
+ *      不再受「局域网 / 编辑密码」门禁限制；
+ *   2. GET /api/comments 公开读取；留言按 id 倒序（最新在前）；
+ *   3. DELETE /api/admin/comments/:id 仍走 /api/admin 中间件——仅局域网或已解锁编辑密码的管理员可删；
+ *   4. 任意成功的写操作都会触发全局 SSE 广播，所有打开页面的设备实时刷新（无需手动刷新）。
+ */
+// 轻量防刷：同一来源 IP 1.5 秒内最多发布 1 条留言
+const commentRate = new Map();
+function commentRateOk(ip) {
+  const last = commentRate.get(ip) || 0;
+  const now = Date.now();
+  if (now - last < 1500) return false;
+  commentRate.set(ip, now);
+  return true;
+}
+
+app.get('/api/comments', (req, res) => {
+  const type = String(req.query.type || 'home');
+  const id = Number(req.query.id || 0);
+  if (!['home', 'study', 'food'].includes(type)) return res.status(400).json({ error: '无效的留言对象' });
+  const rows = db.getComments(type, id).map((r) => ({ id: r.id, name: r.name, content: r.content, time: r.created_at }));
+  res.json({ items: rows });
+});
+
+// 公开发布：无局域网 / 编辑密码限制
+app.post('/api/comments', (req, res) => {
+  const { type, id, name, content } = req.body || {};
+  if (!['home', 'study', 'food'].includes(type)) return res.status(400).json({ error: '无效的留言对象' });
+  if (!content || !String(content).trim()) return res.status(400).json({ error: '留言内容不能为空' });
+  if (String(content).length > 500) return res.status(400).json({ error: '留言内容过长（最多 500 字）' });
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  if (!commentRateOk(ip)) return res.status(429).json({ error: '留言太频繁，请稍候再试' });
+  const cid = db.addComment({
+    entity_type: type,
+    entity_id: Number(id) || 0,
+    name: name || '匿名',
+    content: String(content).trim(),
+  });
+  res.status(201).json({ id: cid });
+});
+
+// 删除留言：仅「同一局域网」或「已用编辑密码解锁」的管理员可删；其他外部用户返回 403
+app.delete('/api/comments/:id', (req, res) => {
+  if (!isPrivateHost(req.headers.host || '') && !hasEditToken(req)) {
+    return res.status(403).json({ error: '仅管理员可删除留言' });
+  }
+  db.deleteComment(Number(req.params.id));
+  res.json({ ok: true });
+});
+
 /* ------------------------------ 社团 / 工作室（玩什么）接口 ------------------------------ */
 
 app.get('/api/clubs', (req, res) => res.json({ items: db.getApprovedClubs() }));
