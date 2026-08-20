@@ -86,6 +86,16 @@
           </p>
         </header>
 
+        <!-- 顶部横向滑动导航栏：四个板块并列入口（吃什么 / 学什么 / 玩什么 / 大家的生活是什么样的） -->
+        <nav class="sticky top-0 z-20 -mx-5 px-5 py-2.5 bg-white border-b border-orange-50">
+          <div class="flex gap-2 overflow-x-auto no-scrollbar snap-x">
+            <button onclick="showBlock('eat')" class="whitespace-nowrap shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-orange-200 text-gray-600 bg-white">🥘 吃什么</button>
+            <button onclick="showBlock('study')" class="whitespace-nowrap shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-orange-200 text-gray-600 bg-white">📚 学什么</button>
+            <button onclick="showBlock('play')" class="whitespace-nowrap shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-orange-200 text-gray-600 bg-white">🎮 玩什么</button>
+            <button onclick="showBlock('life')" class="whitespace-nowrap shrink-0 px-4 py-2 rounded-full text-sm font-semibold border border-brand text-brand bg-brand-light">📸 大家的生活是什么样的</button>
+          </div>
+        </nav>
+
         <!-- 轮播图组件 -->
         <section>
           <div id="carousel" class="relative rounded-4xl overflow-hidden shadow-soft bg-brand-light aspect-[4/3] select-none">
@@ -130,6 +140,15 @@
             <div class="flex-1 min-w-0">
               <h3 class="text-lg font-bold text-brand">玩什么</h3>
               <p class="text-xs text-gray-400 mt-0.5 truncate">社团、展览与校园活动攻略</p>
+            </div>
+            <span class="flex-none text-gray-300 text-xl">›</span>
+          </div>
+
+          <div onclick="showBlock('life')" class="card-entry flex items-center gap-4 bg-white rounded-4xl shadow-card border border-orange-50 p-5 transition-transform cursor-pointer">
+            <div class="flex-none w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center text-3xl">📸</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-bold text-brand">大家的生活是什么样的</h3>
+              <p class="text-xs text-gray-400 mt-0.5 truncate">同学随手拍 · 实时分享校园日常</p>
             </div>
             <span class="flex-none text-gray-300 text-xl">›</span>
           </div>
@@ -430,6 +449,42 @@
         <div id="play-toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900/90 text-white text-sm px-5 py-2.5 rounded-full opacity-0 transition-opacity pointer-events-none"></div>
       </section>
 
+      <!-- ============================================================= -->
+      <!-- 区块⑤：大家的生活是什么样的（默认隐藏，照片动态卡片流） -->
+      <!-- ============================================================= -->
+      <section id="block-life" class="hidden">
+        <div class="px-5 pt-4 pb-28">
+          <!-- 返回 + 橙色标题 -->
+          <div class="flex items-center gap-3 py-3">
+            <button onclick="showBlock('home')" class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-brand text-xl active:scale-90 transition">‹</button>
+            <h1 class="text-2xl font-extrabold text-brand">大家的生活是什么样的</h1>
+          </div>
+          <p class="text-xs text-gray-300 mb-4 pl-1">分享你的校园生活瞬间 · 所有人可见 · 实时更新</p>
+
+          <!-- 发布动态卡片（任何网络环境可发布，无需解锁） -->
+          <div class="bg-white rounded-4xl shadow-card border border-orange-50 p-4 mb-5">
+            <div class="flex gap-3">
+              <div id="life-photo-box" onclick="document.getElementById('life-file').click()" class="flex-none w-24 h-24 rounded-2xl bg-brand-light border-2 border-dashed border-orange-200 flex flex-col items-center justify-center text-brand overflow-hidden cursor-pointer active:scale-95 transition">
+                <span class="text-2xl">📷</span>
+                <span class="text-[10px] mt-1">选照片</span>
+              </div>
+              <input id="life-file" type="file" accept="image/*" class="hidden" />
+              <div class="flex-1 min-w-0 flex flex-col gap-2">
+                <input id="life-nick" type="text" maxlength="20" placeholder="昵称（可留空）" class="admin-input w-full px-3 py-2 rounded-xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand" />
+                <textarea id="life-text" rows="2" maxlength="200" placeholder="说点什么…" class="w-full px-3 py-2 rounded-xl bg-gray-50 border border-orange-50 text-sm outline-none focus:border-brand resize-none"></textarea>
+              </div>
+            </div>
+            <p id="life-err" class="hidden text-red-500 text-xs mt-2"></p>
+            <button id="life-submit" onclick="postLife()" class="w-full bg-brand text-white rounded-2xl py-3 font-bold text-[15px] active:scale-[0.98] transition mt-3">发布动态</button>
+          </div>
+
+          <!-- 动态卡片流（新发布排在最顶部） -->
+          <section id="life-feed" class="space-y-5"></section>
+          <div id="life-empty" class="hidden text-center text-gray-300 text-sm py-16">还没有动态，来发第一条吧～</div>
+          <footer class="mt-10 text-center text-[11px] text-gray-300">深职大香蜜校区 · 创新创意设计艺术学院</footer>
+        </div>
+      </section>
+
     </div><!-- /#browse -->
 
     <!-- ============================================================= -->
@@ -554,7 +609,7 @@
 
     /* ===================== 浏览模式：区块切换（懒加载数据） ===================== */
     function showBlock(name) {
-      ['home', 'eat', 'study', 'play'].forEach((n) => {
+      ['home', 'eat', 'study', 'play', 'life'].forEach((n) => {
         const el = document.getElementById('block-' + n);
         if (el) el.classList.toggle('hidden', n !== name);
       });
@@ -564,6 +619,7 @@
       if (name === 'eat') ensureEatLoaded();
       if (name === 'study') ensureStudyLoaded();
       if (name === 'play') ensurePlayLoaded();
+      if (name === 'life') (window.ensureLifeLoaded || function () {})();
     }
 
     /* 通用：标签高亮切换 */
@@ -1911,7 +1967,7 @@
 
     /* ===================== 实时同步：内容变更自动刷新当前区块 ===================== */
     function currentBrowseBlock() {
-      for (const n of ['home', 'eat', 'study', 'play']) {
+      for (const n of ['home', 'eat', 'study', 'play', 'life']) {
         const el = document.getElementById('block-' + n);
         if (el && !el.classList.contains('hidden')) return n;
       }
@@ -1924,6 +1980,7 @@
       else if (b === 'eat') (window.ensureEatLoaded || function () {})();
       else if (b === 'study') (window.ensureStudyLoaded || function () {})();
       else if (b === 'play') (window.ensurePlayLoaded || function () {})();
+      else if (b === 'life') (window.ensureLifeLoaded || function () {})();
       // 同步刷新当前打开的留言区（首页 / 专业详情 / 美食详情）
       refreshOpenComments();
     }
@@ -2056,6 +2113,215 @@
       if (sd && sd.classList.contains('opacity-100') && ctx.sd) loadCommentsFor('study', ctx.sd.id, 'sd');
       const fd = document.getElementById('food-detail');
       if (fd && fd.classList.contains('opacity-100') && ctx.fd) loadCommentsFor('food', ctx.fd.id, 'fd');
+    }
+
+    /* ===================== 大家的生活是什么样的（照片动态 + 评论） ===================== */
+    // 本人删除凭证：与通用留言板分开存储（key 前缀 p=动态 / c=评论），仅存本地
+    function getLifeTokens() {
+      try { return JSON.parse(localStorage.getItem('cg_life_tokens') || '{}'); } catch (e) { return {}; }
+    }
+    function hasLifePostToken(id) { return !!getLifeTokens()['p' + id]; }
+    function hasLifeCmtToken(id) { return !!getLifeTokens()['c' + id]; }
+    function storeLifeToken(kind, id, token) {
+      if (!token) return;
+      const m = getLifeTokens(); m[kind + id] = token;
+      try { localStorage.setItem('cg_life_tokens', JSON.stringify(m)); } catch (e) {}
+    }
+
+    let lifeImageData = ''; // 当前选中的照片（base64，无前缀）
+
+    // 选择照片 → 压缩 → 预览
+    (function bindLifeFile() {
+      const fileEl = document.getElementById('life-file');
+      if (!fileEl) return;
+      fileEl.addEventListener('change', function () {
+        const f = this.files && this.files[0];
+        if (!f) return;
+        resizeImage(f, 1080)
+          .then((dataUri) => {
+            lifeImageData = String(dataUri).split(',')[1] || '';
+            const box = document.getElementById('life-photo-box');
+            if (box) box.innerHTML = '<img src="' + dataUri + '" alt="" class="w-full h-full object-cover" />';
+            const err = document.getElementById('life-err'); if (err) err.classList.add('hidden');
+          })
+          .catch(() => toast('图片读取失败，请换一张'));
+      });
+    })();
+
+    function resetLifePhotoBox() {
+      lifeImageData = '';
+      const box = document.getElementById('life-photo-box');
+      if (box) box.innerHTML = '<span class="text-2xl">📷</span><span class="text-[10px] mt-1">选照片</span>';
+      const file = document.getElementById('life-file');
+      if (file) file.value = '';
+    }
+
+    // 发布动态（任何网络可用，无需解锁）
+    function postLife() {
+      const nick = (document.getElementById('life-nick') || {}).value || '';
+      const text = (document.getElementById('life-text') || {}).value || '';
+      const errEl = document.getElementById('life-err');
+      const showErr = (m) => { if (errEl) { errEl.textContent = m; errEl.classList.remove('hidden'); } };
+      if (errEl) errEl.classList.add('hidden');
+      if (!lifeImageData) { showErr('请先选择一张照片'); return; }
+      const btn = document.getElementById('life-submit');
+      if (btn) { btn.disabled = true; btn.textContent = '发布中…'; }
+      fetch('/api/life/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ nickname: nick.trim(), text: text.trim(), image_data: lifeImageData, image_type: 'image/jpeg' }),
+      })
+        .then((r) => { if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); }); return r.json(); })
+        .then((j) => {
+          if (j && j.author_token) storeLifeToken('p', j.id, j.author_token);
+          const t = document.getElementById('life-text'); if (t) t.value = '';
+          resetLifePhotoBox();
+          loadLifeFeed();
+          toast('发布成功');
+        })
+        .catch((e) => showErr(e.message || '发布失败，请重试'))
+        .finally(() => { if (btn) { btn.disabled = false; btn.textContent = '发布动态'; } });
+    }
+
+    // 拉取并渲染动态流
+    function loadLifeFeed() {
+      fetch('/api/life/posts', { credentials: 'include' })
+        .then((r) => r.json())
+        .then((d) => renderLifeFeed(d.items || []))
+        .catch(() => {});
+    }
+    window.ensureLifeLoaded = loadLifeFeed; // 每次进入区块都重新拉取，保证实时
+
+    function renderLifeFeed(posts) {
+      const feed = document.getElementById('life-feed');
+      const empty = document.getElementById('life-empty');
+      if (!feed) return;
+      if (empty) empty.classList.toggle('hidden', posts.length > 0);
+      feed.innerHTML = posts.map(lifeCardHTML).join('');
+    }
+
+    // 单条动态卡片
+    function lifeCardHTML(p) {
+      const delPost = ((typeof EDITABLE !== 'undefined' && EDITABLE) || hasLifePostToken(p.id))
+        ? '<button onclick="deleteLifePost(' + p.id + ')" class="text-[11px] text-red-400 shrink-0">删除</button>' : '';
+      const initial = esc(String(p.nickname || '匿').charAt(0));
+      // 评论组装成楼中楼
+      const tops = [];
+      const repliesMap = {};
+      (p.comments || []).forEach((c) => {
+        if (!c.parent_id) tops.push(c);
+        else { (repliesMap[c.parent_id] = repliesMap[c.parent_id] || []).push(c); }
+      });
+      tops.sort((a, b) => b.id - a.id);
+      Object.keys(repliesMap).forEach((k) => repliesMap[k].sort((a, b) => a.id - b.id));
+      const cmts = tops.length
+        ? tops.map((c) => lifeCommentThreadHTML(c, p.id, repliesMap, 0)).join('')
+        : '<p class="text-xs text-gray-300 py-1">还没有评论，来抢沙发～</p>';
+      return '<div class="bg-white rounded-4xl shadow-card border border-orange-50 overflow-hidden">'
+        + '<div class="flex items-center justify-between gap-2 px-4 pt-3">'
+        +   '<div class="flex items-center gap-2 min-w-0">'
+        +     '<div class="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center text-brand font-bold text-sm flex-none">' + initial + '</div>'
+        +     '<div class="min-w-0">'
+        +       '<p class="text-sm font-bold text-gray-800 truncate">' + esc(p.nickname || '匿名') + '</p>'
+        +       '<p class="text-[10px] text-gray-300">' + esc(p.time || '') + '</p>'
+        +     '</div>'
+        +   '</div>'
+        +   delPost
+        + '</div>'
+        + (p.image ? '<img src="' + p.image + '" alt="" loading="lazy" class="w-full max-h-[440px] object-cover mt-2.5" />' : '')
+        + (p.text ? '<p class="px-4 pt-2.5 text-sm text-gray-700 leading-6 whitespace-pre-wrap break-words">' + esc(p.text) + '</p>' : '')
+        + '<div class="px-4 pb-4 pt-3"><div class="border-t border-orange-50 pt-3 mt-1">'
+        +   '<p class="text-xs text-gray-400 mb-2">评论 ' + (p.comments || []).length + '</p>'
+        +   '<div class="space-y-2">' + cmts + '</div>'
+        +   '<div class="flex gap-1.5 items-center mt-2.5">'
+        +     '<input id="life-cmt-name-' + p.id + '" type="text" maxlength="20" placeholder="昵称" class="admin-input w-1/3 px-2 py-1.5 rounded-xl bg-gray-50 border border-orange-100 text-xs outline-none focus:border-brand" />'
+        +     '<input id="life-cmt-content-' + p.id + '" type="text" maxlength="300" placeholder="友善评论…" onkeydown="if(event.key===\'Enter\')postLifeComment(' + p.id + ',0)" class="admin-input flex-1 px-2 py-1.5 rounded-xl bg-gray-50 border border-orange-100 text-xs outline-none focus:border-brand" />'
+        +     '<button onclick="postLifeComment(' + p.id + ',0)" class="bg-brand text-white rounded-xl px-3 py-1.5 text-xs font-bold active:scale-95 transition">发送</button>'
+        +   '</div>'
+        + '</div></div>'
+        + '</div>';
+    }
+
+    // 单条评论（支持楼中楼回复）；删除权限：评论作者 / 动态作者 / 管理员
+    function lifeCommentThreadHTML(c, postId, repliesMap, depth) {
+      const canDel = (typeof EDITABLE !== 'undefined' && EDITABLE) || hasLifeCmtToken(c.id) || hasLifePostToken(postId);
+      const del = canDel ? ' <button onclick="deleteLifeComment(' + c.id + ',' + postId + ')" class="text-[10px] text-red-400 ml-1 shrink-0">删除</button>' : '';
+      const replyBtn = depth === 0 ? ' <button onclick="toggleLifeReplyBox(' + c.id + ')" class="text-[10px] text-brand ml-2 shrink-0">回复</button>' : '';
+      const kids = repliesMap[c.id] || [];
+      const kidsHTML = kids.length
+        ? '<div class="mt-2 space-y-2 pl-3 border-l-2 border-orange-100">' + kids.map((k) => lifeCommentThreadHTML(k, postId, repliesMap, depth + 1)).join('') + '</div>'
+        : '';
+      const replyBox = depth === 0
+        ? '<div id="life-reply-box-' + c.id + '" class="hidden mt-2 flex gap-1.5 items-center">'
+          + '<input id="life-reply-name-' + c.id + '" type="text" maxlength="20" placeholder="昵称" class="admin-input w-1/3 px-2 py-1.5 rounded-xl bg-white border border-orange-100 text-xs outline-none focus:border-brand" />'
+          + '<input id="life-reply-content-' + c.id + '" type="text" maxlength="300" placeholder="回复 ' + esc(c.nickname || '匿名') + '…" onkeydown="if(event.key===\'Enter\')postLifeComment(' + postId + ',' + c.id + ')" class="admin-input flex-1 px-2 py-1.5 rounded-xl bg-white border border-orange-100 text-xs outline-none focus:border-brand" />'
+          + '<button onclick="postLifeComment(' + postId + ',' + c.id + ')" class="bg-brand text-white rounded-xl px-3 py-1.5 text-xs font-bold active:scale-95 transition">发送</button>'
+          + '</div>'
+        : '';
+      return '<div class="bg-gray-50 rounded-2xl px-3 py-2">'
+        + '<div class="flex items-start justify-between gap-2">'
+        +   '<span class="text-xs font-medium text-brand shrink-0">' + esc(c.nickname || '匿名') + '</span>'
+        +   '<span class="text-[10px] text-gray-300 whitespace-nowrap">' + esc(c.time || '') + replyBtn + del + '</span>'
+        + '</div>'
+        + '<p class="text-sm text-gray-600 mt-0.5 leading-6 whitespace-pre-wrap break-words">' + esc(c.text) + '</p>'
+        + replyBox
+        + kidsHTML
+        + '</div>';
+    }
+
+    function toggleLifeReplyBox(cid) {
+      const box = document.getElementById('life-reply-box-' + cid);
+      if (!box) return;
+      box.classList.toggle('hidden');
+      const ci = document.getElementById('life-reply-content-' + cid);
+      if (ci && !box.classList.contains('hidden')) ci.focus();
+    }
+
+    // 发表评论 / 回复
+    function postLifeComment(postId, parentId) {
+      const pid = Number(parentId) || 0;
+      let nameEl, contentEl;
+      if (pid) { nameEl = document.getElementById('life-reply-name-' + pid); contentEl = document.getElementById('life-reply-content-' + pid); }
+      else { nameEl = document.getElementById('life-cmt-name-' + postId); contentEl = document.getElementById('life-cmt-content-' + postId); }
+      const nickname = nameEl ? nameEl.value.trim() : '';
+      const text = contentEl ? contentEl.value.trim() : '';
+      if (!text) { toast('评论内容不能为空'); return; }
+      fetch('/api/life/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ post_id: postId, nickname, text, parent_id: pid }),
+      })
+        .then((r) => { if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); }); return r.json(); })
+        .then((j) => {
+          if (contentEl) contentEl.value = '';
+          const box = document.getElementById('life-reply-box-' + pid);
+          if (box) box.classList.add('hidden');
+          if (j && j.author_token) storeLifeToken('c', j.id, j.author_token);
+          loadLifeFeed();
+        })
+        .catch((e) => toast(e.message || '评论发送失败，请重试'));
+    }
+
+    // 删除动态：动态作者（凭 token）或管理员
+    function deleteLifePost(id) {
+      if (!confirm('确定删除这条动态？其下所有评论也会一并删除。')) return;
+      const token = getLifeTokens()['p' + id] || '';
+      const qs = token ? ('?token=' + encodeURIComponent(token)) : '';
+      fetch('/api/life/posts/' + id + qs, { method: 'DELETE', credentials: 'include' })
+        .then((r) => { if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); }); loadLifeFeed(); toast('已删除'); })
+        .catch((e) => toast(e.message || '删除失败，请确认你是否有权限'));
+    }
+
+    // 删除评论：评论作者（凭评论 token）/ 动态作者（凭动态 token）/ 管理员
+    function deleteLifeComment(cid, postId) {
+      if (!confirm('确定删除这条评论？')) return;
+      const token = getLifeTokens()['c' + cid] || getLifeTokens()['p' + postId] || '';
+      const qs = token ? ('?token=' + encodeURIComponent(token)) : '';
+      fetch('/api/life/comments/' + cid + qs, { method: 'DELETE', credentials: 'include' })
+        .then((r) => { if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); }); loadLifeFeed(); toast('已删除'); })
+        .catch((e) => toast(e.message || '删除失败，请确认你是否有权限'));
     }
 
     (function connectLive() {
