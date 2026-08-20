@@ -362,15 +362,23 @@ app.post('/api/comments', (req, res) => {
     content: String(content).trim(),
     parent_id: pid,
   });
-  res.status(201).json({ id: cid });
+  res.status(201).json({ id: cid, del_token: db.getCommentDelToken(cid) });
 });
 
-// 删除留言：仅「同一局域网」或「已用编辑密码解锁」的管理员可删；其他外部用户返回 403
+// 删除留言：管理员（同一局域网 / 已解锁编辑密码）可删任意留言；
+// 普通用户仅凭「本人删除凭证」可删自己发的留言（无需解锁），凭证在发帖时由前端本地保存。
 app.delete('/api/comments/:id', (req, res) => {
-  if (!isPrivateHost(req.headers.host || '') && !hasEditToken(req)) {
-    return res.status(403).json({ error: '仅管理员可删除留言' });
+  const id = Number(req.params.id);
+  const admin = isPrivateHost(req.headers.host || '') || hasEditToken(req);
+  if (!admin) {
+    const c = db.getComment(id);
+    if (!c) return res.status(404).json({ error: '留言不存在' });
+    const token = (req.query && req.query.token) || (req.body && req.body.token) || '';
+    if (!token || token !== c.del_token) {
+      return res.status(403).json({ error: '仅本人或管理员可删除该留言' });
+    }
   }
-  db.deleteComment(Number(req.params.id));
+  db.deleteComment(id);
   res.json({ ok: true });
 });
 
