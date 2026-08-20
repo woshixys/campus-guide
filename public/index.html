@@ -1932,9 +1932,20 @@
     window.ccCtx = window.ccCtx || {};
     window.ccCtx.home = { type: 'home', id: 0 };
 
-    // 渲染单条留言（支持楼中楼回复）；仅管理员（局域网 / 已解锁编辑）可见「删除」；仅一级留言显示「回复」
+    // 本人删除凭证：发帖时后端返回，前端仅存于本地（localStorage），不发到服务器以外的任何地方
+    function getDelTokens() {
+      try { return JSON.parse(localStorage.getItem('cg_del_tokens') || '{}'); } catch (e) { return {}; }
+    }
+    function hasDelToken(id) { return !!getDelTokens()[id]; }
+    function storeDelToken(id, token) {
+      if (!token) return;
+      const m = getDelTokens(); m[id] = token;
+      try { localStorage.setItem('cg_del_tokens', JSON.stringify(m)); } catch (e) {}
+    }
+
+    // 渲染单条留言（支持楼中楼回复）；管理员（局域网 / 已解锁编辑）或「本人（持有删除凭证）」可见「删除」；仅一级留言显示「回复」
     function commentThreadHTML(c, prefix, repliesMap, depth) {
-      const canDel = (typeof EDITABLE !== 'undefined' && EDITABLE);
+      const canDel = (typeof EDITABLE !== 'undefined' && EDITABLE) || hasDelToken(c.id);
       const del = canDel ? ` <button onclick="deleteComment(${c.id},'${prefix}')" class="text-[10px] text-red-400 ml-1 shrink-0">删除</button>` : '';
       const replyBtn = depth === 0 ? ` <button onclick="toggleReplyBox(${c.id},'${prefix}')" class="text-[10px] text-brand ml-2 shrink-0">回复</button>` : '';
       const kids = repliesMap[c.id] || [];
@@ -2014,9 +2025,13 @@
       })
         .then((r) => {
           if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); });
+          return r.json();
+        })
+        .then((j) => {
           if (contentEl) contentEl.value = '';
           const box = document.getElementById('reply-box-' + pid);
           if (box) box.classList.add('hidden');
+          if (j && j.del_token) storeDelToken(j.id, j.del_token); // 保存本人删除凭证
           loadCommentsFor(ctx.type, ctx.id, prefix);
         })
         .catch((e) => toast(e.message || '留言发送失败，请重试'));
@@ -2025,9 +2040,11 @@
     function deleteComment(cid, prefix) {
       if (!confirm('确定删除这条留言？')) return;
       const ctx = window.ccCtx && window.ccCtx[prefix];
-      fetch('/api/comments/' + cid, { method: 'DELETE', credentials: 'include' })
-        .then((r) => { if (!r.ok) throw new Error(); if (ctx) loadCommentsFor(ctx.type, ctx.id, prefix); })
-        .catch(() => toast('删除失败，请确认你是否有权限'));
+      const token = getDelTokens()[cid] || ''; // 本人删除凭证（管理员走 cookie，无需 token）
+      const qs = token ? ('?token=' + encodeURIComponent(token)) : '';
+      fetch('/api/comments/' + cid + qs, { method: 'DELETE', credentials: 'include' })
+        .then((r) => { if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); }); if (ctx) loadCommentsFor(ctx.type, ctx.id, prefix); })
+        .catch((e) => toast(e.message || '删除失败，请确认你是否有权限'));
     }
 
     // SSE 触发时，刷新当前可见的留言区（首页 / 专业详情 / 美食详情）
