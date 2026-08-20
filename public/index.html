@@ -1931,17 +1931,40 @@
     window.ccCtx = window.ccCtx || {};
     window.ccCtx.home = { type: 'home', id: 0 };
 
-    // 渲染单条留言；仅管理员（局域网 / 已解锁编辑）可见「删除」
-    function commentItemHTML(c, prefix) {
+    // 渲染单条留言（支持楼中楼回复）；仅管理员（局域网 / 已解锁编辑）可见「删除」；仅一级留言显示「回复」
+    function commentThreadHTML(c, prefix, repliesMap, depth) {
       const canDel = (typeof EDITABLE !== 'undefined' && EDITABLE);
       const del = canDel ? ` <button onclick="deleteComment(${c.id},'${prefix}')" class="text-[10px] text-red-400 ml-1 shrink-0">删除</button>` : '';
+      const replyBtn = depth === 0 ? ` <button onclick="toggleReplyBox(${c.id},'${prefix}')" class="text-[10px] text-brand ml-2 shrink-0">回复</button>` : '';
+      const kids = repliesMap[c.id] || [];
+      const kidsHTML = kids.length
+        ? `<div class="mt-2 space-y-2 pl-3 border-l-2 border-orange-100">${kids.map((k) => commentThreadHTML(k, prefix, repliesMap, depth + 1)).join('')}</div>`
+        : '';
+      const replyBox = depth === 0
+        ? `<div id="reply-box-${c.id}" class="hidden mt-2 flex gap-1.5 items-center">
+            <input id="reply-name-${c.id}" type="text" maxlength="20" placeholder="昵称" class="admin-input w-1/3 px-2 py-1.5 rounded-xl bg-white border border-orange-100 text-xs outline-none focus:border-brand" />
+            <input id="reply-content-${c.id}" type="text" placeholder="回复 ${esc(c.name || '匿名')}…" onkeydown="if(event.key==='Enter')postComment('${prefix}',${c.id})" class="admin-input flex-1 px-2 py-1.5 rounded-xl bg-white border border-orange-100 text-xs outline-none focus:border-brand" />
+            <button onclick="postComment('${prefix}',${c.id})" class="bg-brand text-white rounded-xl px-3 py-1.5 text-xs font-bold active:scale-95 transition">发送</button>
+          </div>`
+        : '';
       return `<div class="bg-gray-50 rounded-2xl px-3 py-2">
         <div class="flex items-start justify-between gap-2">
           <span class="text-xs font-medium text-brand shrink-0">${esc(c.name || '匿名')}</span>
-          <span class="text-[10px] text-gray-300 whitespace-nowrap">${esc(c.time || '')}${del}</span>
+          <span class="text-[10px] text-gray-300 whitespace-nowrap">${esc(c.time || '')}${replyBtn}${del}</span>
         </div>
         <p class="text-sm text-gray-600 mt-0.5 leading-6 whitespace-pre-wrap break-words">${esc(c.content)}</p>
+        ${replyBox}
+        ${kidsHTML}
       </div>`;
+    }
+
+    // 展开 / 收起某条一级留言下方的回复输入框
+    function toggleReplyBox(id, prefix) {
+      const box = document.getElementById('reply-box-' + id);
+      if (!box) return;
+      box.classList.toggle('hidden');
+      const ci = document.getElementById('reply-content-' + id);
+      if (ci && !box.classList.contains('hidden')) ci.focus();
     }
 
     function loadCommentsFor(type, id, prefix) {
@@ -1955,18 +1978,30 @@
           const countEl = document.getElementById(prefix + '-comment-count');
           const listEl = document.getElementById(prefix + '-comment-list');
           if (countEl) countEl.textContent = list.length;
-          if (listEl) listEl.innerHTML = list.length
-            ? list.map((c) => commentItemHTML(c, prefix)).join('')
+          if (!listEl) return;
+          // 拆成一级留言 + 其回复，组装成楼中楼
+          const tops = [];
+          const repliesMap = {};
+          list.forEach((c) => {
+            if (!c.parent_id) tops.push(c);
+            else { (repliesMap[c.parent_id] = repliesMap[c.parent_id] || []).push(c); }
+          });
+          tops.sort((a, b) => b.id - a.id);                 // 一级留言：最新在前
+          Object.keys(repliesMap).forEach((k) => repliesMap[k].sort((a, b) => a.id - b.id)); // 回复：按时间正序
+          listEl.innerHTML = tops.length
+            ? tops.map((c) => commentThreadHTML(c, prefix, repliesMap, 0)).join('')
             : '<p class="text-xs text-gray-300 py-2">还没有留言，来抢沙发吧～</p>';
         })
         .catch(() => {});
     }
 
-    function postComment(prefix) {
+    function postComment(prefix, parentId) {
       const ctx = window.ccCtx && window.ccCtx[prefix];
       if (!ctx) return;
-      const nameEl = document.getElementById(prefix + '-comment-name');
-      const contentEl = document.getElementById(prefix + '-comment-content');
+      const pid = Number(parentId) || 0;
+      let nameEl, contentEl;
+      if (pid) { nameEl = document.getElementById('reply-name-' + pid); contentEl = document.getElementById('reply-content-' + pid); }
+      else { nameEl = document.getElementById(prefix + '-comment-name'); contentEl = document.getElementById(prefix + '-comment-content'); }
       const name = nameEl ? nameEl.value.trim() : '';
       const content = contentEl ? contentEl.value.trim() : '';
       if (!content) { toast('留言内容不能为空'); return; }
@@ -1974,11 +2009,13 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ type: ctx.type, id: ctx.id, name, content }),
+        body: JSON.stringify({ type: ctx.type, id: ctx.id, name, content, parent_id: pid }),
       })
         .then((r) => {
           if (!r.ok) return r.json().then((d) => { throw new Error(d.error || 'fail'); });
           if (contentEl) contentEl.value = '';
+          const box = document.getElementById('reply-box-' + pid);
+          if (box) box.classList.add('hidden');
           loadCommentsFor(ctx.type, ctx.id, prefix);
         })
         .catch((e) => toast(e.message || '留言发送失败，请重试'));
