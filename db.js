@@ -95,6 +95,18 @@ db.exec(`
     content    TEXT    NOT NULL,
     created_at TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
   );
+
+  -- 通用留言板（首页 / 各专业详情 / 各美食详情 共用）
+  CREATE TABLE IF NOT EXISTS comments (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,   -- 'home' | 'study' | 'food'
+    entity_id   INTEGER NOT NULL DEFAULT 0,
+    name        TEXT NOT NULL DEFAULT '匿名',
+    content     TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_comments_entity ON comments(entity_type, entity_id, id);
 `);
 
 // 数据迁移：为 study 表补上 category（专业分类）字段，兼容已存在的旧数据库
@@ -234,6 +246,7 @@ function seedIfEmpty() {
 migrateStudyCategory();
 migrateClubsCategory();
 seedIfEmpty();
+migrateComments();
 
 /* ============================ 轮播图 / 简介 ============================ */
 
@@ -419,6 +432,41 @@ function addStudyComment({ study_id, name = '匿名', content }) {
   return Number(info.lastInsertRowid);
 }
 
+/* ============================ 通用留言板（comments） ============================ */
+
+function getComments(entity_type, entity_id) {
+  return db
+    .prepare('SELECT id, name, content, created_at FROM comments WHERE entity_type=? AND entity_id=? ORDER BY id DESC')
+    .all(entity_type, entity_id);
+}
+
+function addComment({ entity_type, entity_id = 0, name = '匿名', content }) {
+  const info = db
+    .prepare('INSERT INTO comments (entity_type, entity_id, name, content) VALUES (?, ?, ?, ?)')
+    .run(String(entity_type), Number(entity_id) || 0, String(name || '匿名').trim().slice(0, 20), String(content).trim());
+  return Number(info.lastInsertRowid);
+}
+
+function getComment(id) {
+  return db.prepare('SELECT * FROM comments WHERE id=?').get(id);
+}
+
+function deleteComment(id) {
+  db.prepare('DELETE FROM comments WHERE id=?').run(id);
+}
+
+// 旧的专业留言（study_comments）一次性迁移到通用留言板，避免历史留言丢失
+function migrateComments() {
+  const cols = db.prepare('PRAGMA table_info(comments)').all().map((c) => c.name);
+  if (!cols.length) return;
+  const exists = db.prepare("SELECT COUNT(*) AS c FROM comments WHERE entity_type='study'").get().c;
+  if (exists) return;
+  const old = db.prepare('SELECT study_id, name, content, created_at FROM study_comments').all();
+  if (!old.length) return;
+  const ins = db.prepare("INSERT INTO comments (entity_type, entity_id, name, content, created_at) VALUES ('study', ?, ?, ?, ?)");
+  old.forEach((r) => ins.run(r.study_id, r.name, r.content, r.created_at));
+}
+
 /* ============================ 社团 / 工作室（玩什么） ============================ */
 
 function getApprovedClubs() {
@@ -591,6 +639,11 @@ module.exports = {
   // 专业留言
   getStudyComments,
   addStudyComment,
+  // 通用留言板
+  getComments,
+  addComment,
+  getComment,
+  deleteComment,
   // 社团 / 工作室
   getApprovedClubs,
   getAllClubs,
