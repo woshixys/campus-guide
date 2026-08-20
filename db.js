@@ -103,6 +103,7 @@ db.exec(`
     entity_id   INTEGER NOT NULL DEFAULT 0,
     name        TEXT NOT NULL DEFAULT '匿名',
     content     TEXT NOT NULL,
+    parent_id   INTEGER NOT NULL DEFAULT 0,   -- 0=一级留言；>0=回复某条一级留言（楼中楼）
     created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
 
@@ -261,6 +262,7 @@ function seedIfEmpty() {
 migrateStudyCategory();
 migrateClubsCategory();
 migrateFoodFields();
+migrateCommentReplies();
 seedIfEmpty();
 migrateComments();
 
@@ -273,6 +275,14 @@ function migrateFoodFields() {
       db.exec(`ALTER TABLE foods ADD COLUMN ${c} TEXT NOT NULL DEFAULT ''`);
     }
   });
+}
+
+// 数据迁移：为 comments 表补上 parent_id（回复所属的一级留言），兼容已存在的旧数据库
+function migrateCommentReplies() {
+  const cols = db.prepare('PRAGMA table_info(comments)').all().map((c) => c.name);
+  if (!cols.includes('parent_id')) {
+    db.exec('ALTER TABLE comments ADD COLUMN parent_id INTEGER NOT NULL DEFAULT 0');
+  }
 }
 
 /* ============================ 轮播图 / 简介 ============================ */
@@ -468,14 +478,14 @@ function addStudyComment({ study_id, name = '匿名', content }) {
 
 function getComments(entity_type, entity_id) {
   return db
-    .prepare('SELECT id, name, content, created_at FROM comments WHERE entity_type=? AND entity_id=? ORDER BY id DESC')
+    .prepare('SELECT id, name, content, created_at, parent_id FROM comments WHERE entity_type=? AND entity_id=? ORDER BY id ASC')
     .all(entity_type, entity_id);
 }
 
-function addComment({ entity_type, entity_id = 0, name = '匿名', content }) {
+function addComment({ entity_type, entity_id = 0, name = '匿名', content, parent_id = 0 }) {
   const info = db
-    .prepare('INSERT INTO comments (entity_type, entity_id, name, content) VALUES (?, ?, ?, ?)')
-    .run(String(entity_type), Number(entity_id) || 0, String(name || '匿名').trim().slice(0, 20), String(content).trim());
+    .prepare('INSERT INTO comments (entity_type, entity_id, name, content, parent_id) VALUES (?, ?, ?, ?, ?)')
+    .run(String(entity_type), Number(entity_id) || 0, String(name || '匿名').trim().slice(0, 20), String(content).trim(), Number(parent_id) || 0);
   return Number(info.lastInsertRowid);
 }
 
@@ -484,7 +494,14 @@ function getComment(id) {
 }
 
 function deleteComment(id) {
-  db.prepare('DELETE FROM comments WHERE id=?').run(id);
+  const c = getComment(id);
+  if (!c) return;
+  // 删除一级留言时，连带删除其下所有回复（楼中楼）；删除回复则只删该条
+  if (!c.parent_id) {
+    db.prepare('DELETE FROM comments WHERE id=? OR parent_id=?').run(Number(id), Number(id));
+  } else {
+    db.prepare('DELETE FROM comments WHERE id=?').run(Number(id));
+  }
 }
 
 // 旧的专业留言（study_comments）一次性迁移到通用留言板，避免历史留言丢失
