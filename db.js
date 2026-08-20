@@ -172,19 +172,34 @@ function seedIfEmpty() {
     ).run('创新创意设计艺术学院（香蜜校区）');
   }
 
-  // 演示用：已发布（approved）的校内/周边美食，让列表不为空
+  // 校内 / 周边美食（吃什么板块，16 家官方店铺，已发布、配图引用 food_imgs 目录）
   const foodCount = db.prepare('SELECT COUNT(*) AS c FROM foods').get().c;
   if (foodCount === 0) {
     const seedFoods = [
-      ['香蜜一楼自选快餐', '校内', '品种多、出餐快，午晚餐人气王。', '性价比高,出餐快'],
-      ['湖景奶茶铺', '周边', '校门口步行3分钟，招牌芋泥波波。', '奶茶,人气'],
-      ['匠造手作面', '校内', '现擀面条，浇头现炒，汤头浓郁。', '现做,面食'],
-      ['巷子里的麻辣烫', '周边', '自选称重，辣度可调，宵夜首选。', '麻辣,宵夜'],
+      { name: '香蜜一楼自选快餐', loc: '校内', intro: '品种多、出餐快，午晚餐人气王。', tags: '性价比高,出餐快', imgs: [] },
+      { name: '湖景奶茶铺', loc: '周边', intro: '校门口步行3分钟，招牌芋泥波波。', tags: '奶茶,人气', imgs: [] },
+      { name: '匠造手作面', loc: '校内', intro: '现擀面条，浇头现炒，汤头浓郁。', tags: '现做,面食', imgs: [] },
+      { name: '巷子里的麻辣烫', loc: '周边', intro: '自选称重，辣度可调，宵夜首选。', tags: '麻辣,宵夜', imgs: [] },
+      { name: '洪大厨鸡煲', loc: '周边', intro: '深圳排名第1的炭炉鸡煲。招牌石橄榄鸡煲，汤底清亮透着草本清香；重口味必点香辣鸡煲。营业到凌晨6:30，宵夜党友好。', tags: '鸡煲,炭炉,宵夜,聚餐', imgs: ['img_06', 'img_04', 'img_09', 'img_10', 'img_18'] },
+      { name: '张姐烤肥牛', loc: '周边', intro: '深圳烤肥牛老字号。招牌肥牛配秘制酸菜一起烤，酸菜吸饱牛油，酸爽解腻。最后来盘生蚝压轴。大口吃肉大口喝酒。', tags: '烤肉,烤肥牛,老字号,聚餐', imgs: ['img_07'] },
+      { name: '潮泰牛肉火锅', loc: '周边', intro: '开了34年的潮汕牛肉老字号。牛肉每天分批到店，明档现切。招牌顶鲜肥牛只涮9秒，入口满是奶香。五花趾爽脆弹牙。', tags: '潮汕牛肉,火锅,现切,老字号', imgs: ['img_08'] },
+      { name: '欧记大排档·江西景德菜', loc: '周边', intro: '深圳江西菜排名第1。全透明厨房，盘盘猛火爆炒。招牌小炒黄牛肉、南昌拌粉，辣劲十足，下饭又刺激。聚餐宵夜小酌都很合适。', tags: '江西菜,辣,下饭,宵夜', imgs: ['img_15'] },
+      { name: '念东北铁锅炖', loc: '周边', intro: '东北铁锅炖大鹅，大铁锅往桌上一支，灶火一点，热乎劲儿上来了。大鹅肉质紧实，慢火炖到酥烂入味。锅边贴一圈玉米饼蘸浓汤吃。等锅开先来份麻酱拉皮。', tags: '东北菜,铁锅炖,大鹅,聚餐', imgs: ['img_01'] },
+      { name: '牧香云', loc: '周边', intro: '云南菌子鸡锅专门店。招牌黑松露羊肚菌炖鸡，羊肚菌吸饱土鸡汤精华，一口满口鲜汁。菌菇拼盘入汤，傣味香茅草烤鱼外焦里嫩。地标凉米线酸辣开胃。', tags: '云南菜,菌子,鸡汤,养生', imgs: ['img_13', 'img_14'] },
+      { name: '俗器·贵州大牌档', loc: '周边', intro: '车公庙烧烤烤串热门榜TOP1。老板是土生土长贵阳人。招牌贵州炭火烤鸡，金黄诱人，焦香Q弹，自带烟熏炭火气息。搭配毛辣果、小米辣、青柠调制的秘制蘸酱，酸爽非常。营业到凌晨3点。', tags: '贵州菜,烧烤,烤鸡,宵夜', imgs: ['img_03', 'img_11', 'img_16'] },
+      { name: 'Lapower泰式热炒小馆', loc: '周边', intro: '藏在泰然公寓楼下，像把曼谷夜市路边摊搬到家门口。必点打抛猪肉饭，肉碎和香料镬气爆炒，咸鲜微辣超级下饭。冬阴功和咖喱鸡也很浓郁。搭配泰式奶茶，地道东南亚街头味。', tags: '泰式,热炒,打抛饭,奶茶', imgs: ['img_17'] },
+      { name: '丁叮小排档', loc: '周边', intro: '车公庙开了5年的江湖菜大排档。招牌大红盘尖椒鸡，超大一盘，鸡肉干香入味，裹满辣味，越吃越过瘾。火爆三脆、传统毛血旺也是必点。菜量大，镬气和下饭就是精髓。', tags: '江湖菜,辣,下饭,聚餐', imgs: ['img_12', 'img_02'] },
+      { name: '罗大厨肥肠煲', loc: '周边', intro: '车公庙湘菜TOP2，开了十几年的排队神店。招牌肥肠煲，肥肠处理干净，大火煸炒后慢火煨煮，口感软糯带韧劲。小炒黄牛肉、干锅鱼籽鱼泡、干锅黄骨鱼都是下饭硬菜。营业到凌晨3点。', tags: '湘菜,肥肠,辣,下饭', imgs: ['img_05'] },
+      { name: '润园四季椰子鸡火锅', loc: '周边', intro: '椰子鸡火锅，汤底清甜，鸡肉嫩滑。一级腊味煲仔饭是必点主食，锅巴金黄酥脆。适合朋友聚餐，人均约106元。', tags: '椰子鸡,火锅,煲仔饭,聚餐', imgs: [] },
+      { name: '汶和记粥底火锅', loc: '周边', intro: '粥底涮海鲜的温和火锅。绵滑粥底做锅底，先喝一碗鲜粥，再涮入鲜活海鲜，滋味直达天灵盖。高压锅五指毛桃焗鸡也是特色，鸡肉嫩滑，药香扑鼻。人均约116元。', tags: '粥底火锅,海鲜,养生,特色', imgs: [] },
     ];
     const ins = db.prepare(
-      "INSERT INTO foods (shop_name, location, intro, tags, status) VALUES (?, ?, ?, ?, 'approved')"
+      "INSERT INTO foods (shop_name, location, intro, tags, images, status) VALUES (?, ?, ?, ?, ?, ?)"
     );
-    seedFoods.forEach((f) => ins.run(f[0], f[1], f[2], f[3]));
+    seedFoods.forEach((f) => {
+      const imgs = (f.imgs || []).map((x) => '/food_imgs/' + x + '.jpg');
+      ins.run(f.name, f.loc, f.intro, f.tags, JSON.stringify(imgs), 'approved');
+    });
   }
 
   // 本院官方专业（学什么板块，8 个，已发布、无图片）
@@ -245,8 +260,20 @@ function seedIfEmpty() {
 // 数据迁移：study / clubs 表补 category 字段（兼容旧库），并给演示数据归类
 migrateStudyCategory();
 migrateClubsCategory();
+migrateFoodFields();
 seedIfEmpty();
 migrateComments();
+
+// 数据迁移：为 foods 表补上详细字段（菜系 / 人均 / 地址 / 推荐菜品 / 点评），兼容已存在的旧数据库
+function migrateFoodFields() {
+  const cols = db.prepare('PRAGMA table_info(foods)').all().map((c) => c.name);
+  const need = ['cuisine', 'avg_cost', 'address', 'recommend', 'review'];
+  need.forEach((c) => {
+    if (!cols.includes(c)) {
+      db.exec(`ALTER TABLE foods ADD COLUMN ${c} TEXT NOT NULL DEFAULT ''`);
+    }
+  });
+}
 
 /* ============================ 轮播图 / 简介 ============================ */
 
@@ -301,13 +328,13 @@ function setHomeTitle(title) {
 
 function getApprovedFoods() {
   return db
-    .prepare("SELECT id, shop_name, location, intro, tags, images FROM foods WHERE status = 'approved' ORDER BY id DESC")
+    .prepare("SELECT id, shop_name, location, intro, tags, images, cuisine, avg_cost, address, recommend, review FROM foods WHERE status = 'approved' ORDER BY id DESC")
     .all();
 }
 
 function getAllFoods() {
   return db
-    .prepare("SELECT id, shop_name, location, intro, tags, images, status, created_at FROM foods ORDER BY id DESC")
+    .prepare("SELECT id, shop_name, location, intro, tags, images, cuisine, avg_cost, address, recommend, review, status, created_at FROM foods ORDER BY id DESC")
     .all();
 }
 
@@ -321,10 +348,10 @@ function getFood(id) {
   return db.prepare('SELECT * FROM foods WHERE id = ?').get(id);
 }
 
-function addFood({ shop_name, location, intro = '', tags = '', images = [], status = 'pending' }) {
+function addFood({ shop_name, location, intro = '', tags = '', images = [], cuisine = '', avg_cost = '', address = '', recommend = '', review = '', status = 'pending' }) {
   const info = db
-    .prepare("INSERT INTO foods (shop_name, location, intro, tags, images, status) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(shop_name, location, intro, tags, JSON.stringify(images || []), status);
+    .prepare("INSERT INTO foods (shop_name, location, intro, tags, images, cuisine, avg_cost, address, recommend, review, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(shop_name, location, intro, tags, JSON.stringify(images || []), String(cuisine || ''), String(avg_cost || ''), String(address || ''), String(recommend || ''), String(review || ''), status);
   return Number(info.lastInsertRowid);
 }
 
@@ -338,8 +365,13 @@ function updateFood(id, fields = {}) {
     ? (Array.isArray(fields.tags) ? fields.tags.join(',') : String(fields.tags).trim())
     : cur.tags;
   const images = fields.images !== undefined ? JSON.stringify(fields.images || []) : cur.images;
-  db.prepare('UPDATE foods SET shop_name=?, location=?, intro=?, tags=?, images=? WHERE id=?')
-    .run(shop_name, location, intro, tags, images, id);
+  const cuisine = fields.cuisine !== undefined ? String(fields.cuisine || '').trim() : cur.cuisine;
+  const avg_cost = fields.avg_cost !== undefined ? String(fields.avg_cost || '').trim() : cur.avg_cost;
+  const address = fields.address !== undefined ? String(fields.address || '').trim() : cur.address;
+  const recommend = fields.recommend !== undefined ? String(fields.recommend || '').trim() : cur.recommend;
+  const review = fields.review !== undefined ? String(fields.review || '').trim() : cur.review;
+  db.prepare('UPDATE foods SET shop_name=?, location=?, intro=?, tags=?, images=?, cuisine=?, avg_cost=?, address=?, recommend=?, review=? WHERE id=?')
+    .run(shop_name, location, intro, tags, images, cuisine, avg_cost, address, recommend, review, id);
   return true;
 }
 
